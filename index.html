@@ -118,7 +118,7 @@
           document.getElementById('issueCount').textContent = Object.keys(issueTypes).length;
           document.getElementById('slotCount').textContent = totalSlots;
           const lossElem = document.getElementById('dailyLoss');
-          lossElem.textContent = `$${totalLoss.toFixed(2)}`;
+          lossElem.textContent = `$${totalLoss.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
           if (totalLoss > 3000) {
             lossElem.classList.add('text-red-600', 'animate-pulse');
           }
