@@ -2,152 +2,159 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AdPulse Guard Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
-      margin: 20px;
       background: #f9fafb;
-      color: #111827;
+      margin: 0;
+      padding: 20px;
+      color: #111;
     }
     h1 {
       text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 24px;
     }
-    .stats {
+    .metrics {
       display: flex;
       justify-content: center;
-      gap: 40px;
+      gap: 20px;
       margin-bottom: 40px;
+      flex-wrap: wrap;
     }
-    .stat-box {
-      background: white;
+    .card {
+      background: #fff;
       padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      border-radius: 16px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
       text-align: center;
-      width: 150px;
+      min-width: 180px;
     }
-    .stat-box h2 {
-      font-size: 1.5rem;
+    .card h2 {
+      font-size: 28px;
       margin: 0;
+      color: #1f2937;
     }
-    .stat-box p {
-      margin: 4px 0 0;
-      color: #555;
+    .card p {
+      margin-top: 4px;
+      font-size: 14px;
+      color: #6b7280;
+    }
+    .charts {
+      display: flex;
+      justify-content: center;
+      gap: 60px;
+      flex-wrap: wrap;
     }
     canvas {
-      max-width: 700px;
-      margin: 0 auto 40px;
-      display: block;
+      max-width: 400px;
     }
   </style>
 </head>
 <body>
   <h1>AdPulse Guard – Dashboard</h1>
-
-  <div class="stats">
-    <div class="stat-box">
-      <h2 id="issueCount">0</h2>
+  <div class="metrics">
+    <div class="card">
+      <h2 id="issueTypes">0</h2>
       <p>Issue Types</p>
     </div>
-    <div class="stat-box">
-      <h2 id="slotCount">0</h2>
+    <div class="card">
+      <h2 id="totalSlots">0</h2>
       <p>Total Slots</p>
     </div>
-    <div class="stat-box">
-      <h2 id="revenueLoss">$0</h2>
+    <div class="card">
+      <h2 id="dailyLoss">$0.00</h2>
       <p>Daily Loss</p>
     </div>
   </div>
-
-  <canvas id="issueChart"></canvas>
-  <canvas id="severityChart"></canvas>
+  <div class="charts">
+    <canvas id="barChart"></canvas>
+    <canvas id="pieChart"></canvas>
+  </div>
 
   <script>
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx-PFUcYyEXUR7Thw8kqzAWpCX74XY-4c-Si9myS69jloI9Vir_5YaZLXGCUiUquxMn/exec';
+    const SHEET_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYED_SCRIPT_ID/exec';
 
     async function fetchData() {
-      const res = await fetch(SCRIPT_URL);
-      const json = await res.json();
-      return json.data || [];
+      try {
+        const res = await fetch(SHEET_URL);
+        const json = await res.json();
+        return json.data || [];
+      } catch (e) {
+        console.error('Failed to fetch data', e);
+        return [];
+      }
     }
 
-    function processData(rows) {
-      const byIssue = {};
-      const bySeverity = {};
-      let slotSet = new Set();
-      let revenueLoss = 0;
+    function renderDashboard(data) {
+      const issueCounts = {};
+      const slotSet = new Set();
+      let totalLoss = 0;
+      const severityCounts = {};
 
-      rows.forEach(row => {
-        const issue = row.issueType;
-        const severity = row.severity?.toUpperCase();
-        const slotId = row.slotId;
-        const loss = parseFloat(row.estimatedDailyRevenueRisk || 0);
+      data.forEach(row => {
+        const type = row.issueType;
+        const slot = row.slotId;
+        const sev = (row.severity || '').toUpperCase();
 
-        byIssue[issue] = (byIssue[issue] || 0) + 1;
-        bySeverity[severity] = (bySeverity[severity] || 0) + 1;
+        issueCounts[type] = (issueCounts[type] || 0) + 1;
+        if (slot) slotSet.add(slot);
 
-        if (slotId) slotSet.add(slotId);
-        revenueLoss += loss;
+        const risk = parseFloat(row.estimatedDailyRevenueRisk);
+        if (!isNaN(risk)) totalLoss += risk;
+
+        if (sev) severityCounts[sev] = (severityCounts[sev] || 0) + 1;
       });
 
-      return {
-        issueCounts: byIssue,
-        severityCounts: bySeverity,
-        slotCount: slotSet.size,
-        totalLoss: revenueLoss.toFixed(2),
-        issueTypeCount: Object.keys(byIssue).length
-      };
-    }
+      document.getElementById('issueTypes').innerText = Object.keys(issueCounts).length;
+      document.getElementById('totalSlots').innerText = slotSet.size;
+      document.getElementById('dailyLoss').innerText = `$${totalLoss.toFixed(2)}`;
 
-    function renderCharts(data) {
-      document.getElementById('issueCount').textContent = data.issueTypeCount;
-      document.getElementById('slotCount').textContent = data.slotCount;
-      document.getElementById('revenueLoss').textContent = `$${data.totalLoss}`;
-
-      const issueCtx = document.getElementById('issueChart').getContext('2d');
-      new Chart(issueCtx, {
+      // Bar chart
+      new Chart(document.getElementById('barChart'), {
         type: 'bar',
         data: {
-          labels: Object.keys(data.issueCounts),
+          labels: Object.keys(issueCounts),
           datasets: [{
-            label: 'Issue Frequency',
-            data: Object.values(data.issueCounts),
+            label: 'Record Count',
+            data: Object.values(issueCounts),
             backgroundColor: '#3b82f6'
           }]
         },
         options: {
-          responsive: true,
-          plugins: {
-            legend: { display: false }
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { autoSkip: false } }
           }
         }
       });
 
-      const sevCtx = document.getElementById('severityChart').getContext('2d');
-      new Chart(sevCtx, {
+      // Pie chart
+      const severityColorMap = {
+        HIGH: '#dc2626',
+        MEDIUM: '#f59e0b',
+        LOW: '#16a34a'
+      };
+
+      const severityLabels = Object.keys(severityCounts);
+      const severityValues = Object.values(severityCounts);
+      const severityColors = severityLabels.map(l => severityColorMap[l] || '#9ca3af');
+
+      new Chart(document.getElementById('pieChart'), {
         type: 'pie',
         data: {
-          labels: Object.keys(data.severityCounts),
+          labels: severityLabels,
           datasets: [{
-            label: 'Severity',
-            data: Object.values(data.severityCounts),
-            backgroundColor: ['#dc2626', '#f59e0b', '#16a34a']
+            data: severityValues,
+            backgroundColor: severityColors
           }]
-        },
-        options: {
-          responsive: true
         }
       });
     }
 
-    fetchData().then(processData).then(renderCharts).catch(err => {
-      console.error('Error loading dashboard data:', err);
-      alert('Could not load dashboard data.');
-    });
+    fetchData().then(renderDashboard);
   </script>
 </body>
 </html>
