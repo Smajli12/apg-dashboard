@@ -76,6 +76,7 @@
 
     <script type="module" src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script type="module">
+let issueChart, severityChart, lossTrendChart;
       import confetti from 'https://cdn.skypack.dev/canvas-confetti';
 
       const SHEET_URL = 'https://script.google.com/macros/s/AKfycbx-PFUcYyEXUR7Thw8kqzAWpCX74XY-4c-Si9myS69jloI9Vir_5YaZLXGCUiUquxMn/exec';
@@ -136,7 +137,8 @@
 
             document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
 
-            new Chart(document.getElementById('issueChart'), {
+            if (issueChart) issueChart.destroy();
+      issueChart = new Chart(document.getElementById('issueChart'), {
               type: 'bar',
               data: {
                 labels: Object.keys(issueTypes),
@@ -161,7 +163,8 @@
               }
             });
 
-            new Chart(document.getElementById('severityChart'), {
+            if (severityChart) severityChart.destroy();
+      severityChart = new Chart(document.getElementById('severityChart'), {
               type: 'pie',
               data: {
                 labels: Object.keys(severities),
@@ -184,7 +187,8 @@
             const trendLabels = Object.keys(dailyTotals).sort();
             const trendData = trendLabels.map(d => dailyTotals[d]);
 
-            new Chart(document.getElementById('lossTrendChart'), {
+            if (lossTrendChart) lossTrendChart.destroy();
+      lossTrendChart = new Chart(document.getElementById('lossTrendChart'), {
               type: 'line',
               data: {
                 labels: trendLabels,
