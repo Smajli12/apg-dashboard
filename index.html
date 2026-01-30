@@ -37,9 +37,9 @@
         </button>
       </div>
 
-      <h1 class="text-4xl font-extrabold text-center mb-8 tracking-tight">
-        AdPulse Guard – Dashboard
-      </h1>
+      <h1 id="dashboardTitle" class="text-4xl font-extrabold text-center mb-8 tracking-tight">
+  AdPulse Guard – Overall Summary
+</h1>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <div class="bg-white dark:bg-darkcard text-center rounded-2xl shadow-md p-6 transition hover:shadow-lg">
@@ -99,6 +99,13 @@ let issueChart, severityChart, lossTrendChart;
           const clearDate = document.getElementById('clearDate');
 
           function updateDashboard(rows, selectedDate = null) {
+  const title = document.getElementById('dashboardTitle');
+  if (selectedDate) {
+    const displayDate = new Date(selectedDate).toLocaleDateString();
+    title.textContent = `AdPulse Guard – Summary for ${displayDate}`;
+  } else {
+    title.textContent = 'AdPulse Guard – Overall Summary';
+  }
             const issueTypes = {};
             const severities = {};
             const dailyTotals = {};
