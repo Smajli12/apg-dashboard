@@ -29,7 +29,7 @@
         <span class="text-sm">🌞</span>
         <label class="relative inline-flex items-center cursor-pointer">
           <input type="checkbox" id="darkToggle" class="sr-only peer" />
-          <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full transition-all duration-300 relative peer-checked:bg-blue-600 dark:bg-gray-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-transform after:duration-300 peer-checked:translate-x-[20px] peer-checked:border-white"></div>
+          <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full transition-all duration-300 relative peer-checked:bg-blue-600 dark:bg-gray-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-transform after:duration-300 peer-checked:translate-x-[20px] peer-checked:border-white overflow-hidden"></div>
         </label>
         <span class="text-sm">🌙</span>
       </div>
@@ -118,7 +118,7 @@
           document.getElementById('issueCount').textContent = Object.keys(issueTypes).length;
           document.getElementById('slotCount').textContent = totalSlots;
           const lossElem = document.getElementById('dailyLoss');
-          lossElem.textContent = `$${totalLoss.toFixed(2)}`;
+          lossElem.textContent = `$${totalLoss.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
           if (totalLoss > 3000) {
             lossElem.classList.add('text-red-600', 'animate-pulse');
           }
