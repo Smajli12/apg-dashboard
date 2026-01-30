@@ -1,124 +1,114 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AdPulse Guard Dashboard</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-50 text-gray-800">
-  <div class="max-w-6xl mx-auto px-4 py-8">
-    <h1 class="text-4xl font-bold text-center mb-8">AdPulse Guard &ndash; Dashboard</h1>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AdPulse Guard Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body class="bg-gray-50 text-gray-900">
+    <div class="max-w-6xl mx-auto py-8 px-4">
+      <h1 class="text-4xl font-bold text-center mb-8">AdPulse Guard – Dashboard</h1>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-      <div class="bg-white shadow rounded-xl p-6 text-center">
-        <div class="text-3xl font-bold" id="issueTypeCount">0</div>
-        <div class="text-sm text-gray-500">Issue Types</div>
+      <!-- Stats -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div class="bg-white rounded-xl shadow p-6 text-center">
+          <div class="text-3xl font-bold" id="issueCount">0</div>
+          <div class="text-sm text-gray-600">Issue Types</div>
+        </div>
+        <div class="bg-white rounded-xl shadow p-6 text-center">
+          <div class="text-3xl font-bold" id="slotCount">0</div>
+          <div class="text-sm text-gray-600">Total Slots</div>
+        </div>
+        <div class="bg-white rounded-xl shadow p-6 text-center">
+          <div class="text-3xl font-bold" id="dailyLoss">$0.00</div>
+          <div class="text-sm text-gray-600">Daily Loss</div>
+        </div>
       </div>
-      <div class="bg-white shadow rounded-xl p-6 text-center">
-        <div class="text-3xl font-bold" id="slotCount">0</div>
-        <div class="text-sm text-gray-500">Total Slots</div>
-      </div>
-      <div class="bg-white shadow rounded-xl p-6 text-center">
-        <div class="text-3xl font-bold" id="dailyLoss">$0.00</div>
-        <div class="text-sm text-gray-500">Daily Loss</div>
+
+      <!-- Charts -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white rounded-xl shadow p-4">
+          <canvas id="issueChart" class="h-64"></canvas>
+        </div>
+        <div class="bg-white rounded-xl shadow p-4">
+          <canvas id="severityChart" class="h-64"></canvas>
+        </div>
       </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <canvas id="issueChart" class="w-full h-64"></canvas>
-      <canvas id="severityChart" class="w-full h-64"></canvas>
-    </div>
-  </div>
+    <script>
+      const SHEET_URL = 'https://script.google.com/macros/s/AKfycbx-PFUcYyEXUR7Thw8kqzAWpCX74XY-4c-Si9myS69jloI9Vir_5YaZLXGCUiUquxMn/exec';
 
-  <script>
-    const SHEET_URL = 'https://script.google.com/macros/s/AKfycbx-PFUcYyEXUR7Thw8kqzAWpCX74XY-4c-Si9myS69jloI9Vir_5YaZLXGCUiUquxMn/exec';
+      fetch(SHEET_URL)
+        .then(res => res.json())
+        .then(json => {
+          const rows = json.data || [];
 
-    async function fetchData() {
-      try {
-        const res = await fetch(SHEET_URL);
-        const { data } = await res.json();
-        return data || [];
-      } catch (err) {
-        console.error('Failed to fetch data', err);
-        return [];
-      }
-    }
+          const issueTypes = {};
+          const severities = {};
+          let totalSlots = 0;
+          let totalLoss = 0;
 
-    function groupBy(arr, key) {
-      return arr.reduce((acc, obj) => {
-        const val = obj[key];
-        acc[val] = (acc[val] || 0) + 1;
-        return acc;
-      }, {});
-    }
+          rows.forEach(row => {
+            issueTypes[row.issueType] = (issueTypes[row.issueType] || 0) + 1;
+            severities[row.severity] = (severities[row.severity] || 0) + 1;
+            totalSlots += 1;
+            totalLoss += Number(row.estimatedDailyRevenueRisk) || 0;
+          });
 
-    function sumRevenue(data) {
-      return data.reduce((sum, row) => {
-        const val = parseFloat(row.estimatedDailyRevenueRisk);
-        return sum + (isNaN(val) ? 0 : val);
-      }, 0);
-    }
+          document.getElementById('issueCount').textContent = Object.keys(issueTypes).length;
+          document.getElementById('slotCount').textContent = totalSlots;
+          document.getElementById('dailyLoss').textContent = `$${totalLoss.toFixed(2)}`;
 
-    function formatCurrency(num) {
-      return new Intl.NumberFormat('en-US', {
-        style: 'currency', currency: 'USD'
-      }).format(num);
-    }
+          new Chart(document.getElementById('issueChart'), {
+            type: 'bar',
+            data: {
+              labels: Object.keys(issueTypes),
+              datasets: [{
+                label: 'Issue Count',
+                data: Object.values(issueTypes),
+                backgroundColor: '#3b82f6'
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+              scales: {
+                y: { beginAtZero: true }
+              }
+            }
+          });
 
-    async function renderDashboard() {
-      const data = await fetchData();
-      if (!data.length) return;
+          new Chart(document.getElementById('severityChart'), {
+            type: 'pie',
+            data: {
+              labels: Object.keys(severities),
+              datasets: [{
+                data: Object.values(severities),
+                backgroundColor: Object.keys(severities).map(sev => {
+                  if (sev.toLowerCase() === 'high') return '#dc2626';
+                  if (sev.toLowerCase() === 'medium') return '#f59e0b';
+                  return '#16a34a'; // low
+                })
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { position: 'top' }
+              }
+            }
+          });
 
-      document.getElementById('issueTypeCount').textContent = new Set(data.map(d => d.issueType)).size;
-      document.getElementById('slotCount').textContent = new Set(data.map(d => d.slotId)).size;
-      document.getElementById('dailyLoss').textContent = formatCurrency(sumRevenue(data));
-
-      const issueCounts = groupBy(data, 'issueType');
-      const severityCounts = groupBy(data, 'severity');
-
-      new Chart(document.getElementById('issueChart'), {
-        type: 'bar',
-        data: {
-          labels: Object.keys(issueCounts),
-          datasets: [{
-            label: 'Issue Count',
-            data: Object.values(issueCounts),
-            backgroundColor: '#3b82f6'
-          }]
-        },
-        options: {
-          responsive: true,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { ticks: { maxRotation: 40, minRotation: 20 } },
-            y: { beginAtZero: true }
-          }
-        }
-      });
-
-      new Chart(document.getElementById('severityChart'), {
-        type: 'pie',
-        data: {
-          labels: Object.keys(severityCounts),
-          datasets: [{
-            data: Object.values(severityCounts),
-            backgroundColor: [
-              '#dc2626', // HIGH
-              '#f59e0b', // MEDIUM
-              '#16a34a'  // LOW
-            ]
-          }]
-        },
-        options: {
-          responsive: true,
-          plugins: { legend: { position: 'top' } }
-        }
-      });
-    }
-
-    renderDashboard();
-  </script>
-</body>
+        })
+        .catch(err => {
+          alert('Could not load dashboard data.');
+          console.error(err);
+        });
+    </script>
+  </body>
 </html>
