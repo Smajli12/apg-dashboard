@@ -108,7 +108,7 @@
             const label = labelMap[rawType] || rawType;
             const severity = row.severity?.trim().toLowerCase() || 'unknown';
             const loss = parseFloat(row.estimatedDailyRevenueRisk) || 0;
-            const dateKey = new Date(row.timestamp).toISOString().split('T')[0];
+            const dateKey = new Date(row.receivedAt).toISOString().split('T')[0];
 
             issueTypes[label] = (issueTypes[label] || 0) + 1;
             severities[severity] = (severities[severity] || 0) + 1;
