@@ -52,13 +52,6 @@
         </div>
       </div>
 
-      <div class="flex gap-2 justify-center mt-6 mb-4">
-        <button data-severity="all" class="px-3 py-1 bg-blue-100 text-blue-800 rounded hover:bg-blue-200 dark:bg-blue-900 dark:text-white">All</button>
-        <button data-severity="high" class="px-3 py-1 bg-red-100 text-red-800 rounded hover:bg-red-200 dark:bg-red-900 dark:text-white">High</button>
-        <button data-severity="medium" class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200 dark:bg-yellow-900 dark:text-white">Medium</button>
-        <button data-severity="low" class="px-3 py-1 bg-green-100 text-green-800 rounded hover:bg-green-200 dark:bg-green-900 dark:text-white">Low</button>
-      </div>
-
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="bg-white dark:bg-darkcard rounded-2xl shadow-md p-4">
           <canvas id="issueChart" class="h-64"></canvas>
@@ -66,9 +59,11 @@
         <div class="bg-white dark:bg-darkcard rounded-2xl shadow-md p-4">
           <canvas id="severityChart" class="h-64"></canvas>
         </div>
-        <div class="bg-white dark:bg-darkcard rounded-2xl shadow-md p-4 col-span-2 mt-6">
+        <div class="bg-white dark:bg-darkcard rounded-2xl shadow-md p-4 col-span-2">
           <h2 class="text-lg font-semibold mb-2 dark:text-white">Daily Loss Trend</h2>
-          <canvas id="lossTrendChart" class="h-64"></canvas>
+          <div class="h-64">
+            <canvas id="lossTrendChart" class="h-full w-full"></canvas>
+          </div>
         </div>
       </div>
 
@@ -203,14 +198,6 @@
               },
               scales: { y: { beginAtZero: true } }
             }
-          });
-
-          document.querySelectorAll('[data-severity]').forEach(btn => {
-            btn.addEventListener('click', () => {
-              const level = btn.getAttribute('data-severity');
-              const filtered = level === 'all' ? rows : rows.filter(r => (r.severity || '').toLowerCase() === level);
-              alert(`Filtered to ${filtered.length} issue(s) with severity: ${level}`);
-            });
           });
         });
 
