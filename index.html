@@ -93,8 +93,134 @@
       };
 
       fetch(SHEET_URL)
-        .then(res => res.json())
-        .then(json => {
+  .then(res => res.json())
+  .then(json => {
+    let allRows = json.data || [];
+
+    const dateInput = document.getElementById('dateFilter');
+    const clearDate = document.getElementById('clearDate');
+
+    function updateDashboard(filteredRows, selectedDate) {
+      const issueTypes = {};
+      const severities = {};
+      const dailyTotals = {};
+      let totalSlots = 0;
+      let totalLoss = 0;
+
+      const today = new Date().toISOString().split('T')[0];
+
+      filteredRows.forEach(row => {
+        const rawType = row.issueType?.trim() || 'unknown_issue';
+        const label = labelMap[rawType] || rawType;
+        const severity = row.severity?.trim().toLowerCase() || 'unknown';
+        const loss = parseFloat(row.estimatedDailyRevenueRisk) || 0;
+        const dateKey = new Date(row.receivedAt).toISOString().split('T')[0];
+
+        issueTypes[label] = (issueTypes[label] || 0) + 1;
+        severities[severity] = (severities[severity] || 0) + 1;
+        if (!dailyTotals[dateKey]) dailyTotals[dateKey] = 0;
+        dailyTotals[dateKey] += loss;
+
+        totalSlots++;
+        if (!selectedDate || dateKey === selectedDate) totalLoss += loss;
+      });
+
+      document.getElementById('issueCount').textContent = Object.keys(issueTypes).length;
+      document.getElementById('slotCount').textContent = totalSlots;
+      const lossElem = document.getElementById('dailyLoss');
+      lossElem.textContent = `$${totalLoss.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      lossElem.classList.remove('text-red-600', 'animate-pulse');
+      if (totalLoss > 3000) {
+        lossElem.classList.add('text-red-600', 'animate-pulse');
+      }
+      if (totalLoss === 0) {
+        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+      }
+
+      document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
+
+      new Chart(document.getElementById('issueChart'), {
+        type: 'bar',
+        data: {
+          labels: Object.keys(issueTypes),
+          datasets: [{
+            label: 'Issue Count',
+            data: Object.values(issueTypes),
+            backgroundColor: '#3b82f6'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (context) => `Count: ${context.parsed.y}`
+              }
+            }
+          },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+
+      new Chart(document.getElementById('severityChart'), {
+        type: 'pie',
+        data: {
+          labels: Object.keys(severities),
+          datasets: [{
+            data: Object.values(severities),
+            backgroundColor: Object.keys(severities).map(sev => {
+              if (sev === 'high') return '#dc2626';
+              if (sev === 'medium') return '#f59e0b';
+              return '#16a34a';
+            })
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'top' } }
+        }
+      });
+
+      const trendLabels = Object.keys(dailyTotals).sort();
+      const trendData = trendLabels.map(d => dailyTotals[d]);
+
+      new Chart(document.getElementById('lossTrendChart'), {
+        type: 'line',
+        data: {
+          labels: trendLabels,
+          datasets: [{
+            label: 'Daily Loss ($)',
+            data: trendData,
+            borderColor: '#3b82f6',
+            fill: false,
+            tension: 0.3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: { legend: { position: 'top' } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }
+
+    dateInput.addEventListener('change', () => {
+      const selectedDate = dateInput.value;
+      const filtered = allRows.filter(r => new Date(r.receivedAt).toISOString().split('T')[0] === selectedDate);
+      updateDashboard(filtered, selectedDate);
+    });
+
+    clearDate.addEventListener('click', () => {
+      dateInput.value = '';
+      updateDashboard(allRows);
+    });
+
+    updateDashboard(allRows);
+  });
           const rows = json.data || [];
 
           const issueTypes = {};
