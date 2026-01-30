@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AdPulse Guard Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 20px;
+      background: #f9fafb;
+      color: #111827;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+    .stat-box {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      text-align: center;
+      width: 150px;
+    }
+    .stat-box h2 {
+      font-size: 1.5rem;
+      margin: 0;
+    }
+    .stat-box p {
+      margin: 4px 0 0;
+      color: #555;
+    }
+    canvas {
+      max-width: 700px;
+      margin: 0 auto 40px;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <h1>AdPulse Guard – Dashboard</h1>
+
+  <div class="stats">
+    <div class="stat-box">
+      <h2 id="issueCount">0</h2>
+      <p>Issue Types</p>
+    </div>
+    <div class="stat-box">
+      <h2 id="slotCount">0</h2>
+      <p>Total Slots</p>
+    </div>
+    <div class="stat-box">
+      <h2 id="revenueLoss">$0</h2>
+      <p>Daily Loss</p>
+    </div>
+  </div>
+
+  <canvas id="issueChart"></canvas>
+  <canvas id="severityChart"></canvas>
+
+  <script>
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx-PFUcYyEXUR7Thw8kqzAWpCX74XY-4c-Si9myS69jloI9Vir_5YaZLXGCUiUquxMn/exec';
+
+    async function fetchData() {
+      const res = await fetch(SCRIPT_URL);
+      const json = await res.json();
+      return json.data || [];
+    }
+
+    function processData(rows) {
+      const byIssue = {};
+      const bySeverity = {};
+      let slotSet = new Set();
+      let revenueLoss = 0;
+
+      rows.forEach(row => {
+        const issue = row.issueType;
+        const severity = row.severity?.toUpperCase();
+        const slotId = row.slotId;
+        const loss = parseFloat(row.estimatedDailyRevenueRisk || 0);
+
+        byIssue[issue] = (byIssue[issue] || 0) + 1;
+        bySeverity[severity] = (bySeverity[severity] || 0) + 1;
+
+        if (slotId) slotSet.add(slotId);
+        revenueLoss += loss;
+      });
+
+      return {
+        issueCounts: byIssue,
+        severityCounts: bySeverity,
+        slotCount: slotSet.size,
+        totalLoss: revenueLoss.toFixed(2),
+        issueTypeCount: Object.keys(byIssue).length
+      };
+    }
+
+    function renderCharts(data) {
+      document.getElementById('issueCount').textContent = data.issueTypeCount;
+      document.getElementById('slotCount').textContent = data.slotCount;
+      document.getElementById('revenueLoss').textContent = `$${data.totalLoss}`;
+
+      const issueCtx = document.getElementById('issueChart').getContext('2d');
+      new Chart(issueCtx, {
+        type: 'bar',
+        data: {
+          labels: Object.keys(data.issueCounts),
+          datasets: [{
+            label: 'Issue Frequency',
+            data: Object.values(data.issueCounts),
+            backgroundColor: '#3b82f6'
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false }
+          }
+        }
+      });
+
+      const sevCtx = document.getElementById('severityChart').getContext('2d');
+      new Chart(sevCtx, {
+        type: 'pie',
+        data: {
+          labels: Object.keys(data.severityCounts),
+          datasets: [{
+            label: 'Severity',
+            data: Object.values(data.severityCounts),
+            backgroundColor: ['#dc2626', '#f59e0b', '#16a34a']
+          }]
+        },
+        options: {
+          responsive: true
+        }
+      });
+    }
+
+    fetchData().then(processData).then(renderCharts).catch(err => {
+      console.error('Error loading dashboard data:', err);
+      alert('Could not load dashboard data.');
+    });
+  </script>
+</body>
+</html>
