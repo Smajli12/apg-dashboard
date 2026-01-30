@@ -27,7 +27,7 @@
     <div class="max-w-6xl mx-auto py-8 px-4">
       <div class="flex justify-between mb-4 items-center gap-4 flex-wrap">
         <div class="flex flex-wrap items-center gap-2">
-          <label for="dateFilter" class="text-sm font-medium text-gray-700 dark:text-gray-300">Filter by Date:</label>
+          <label for="dateFilter" class="text-sm font-medium text-gray-700 dark:text-gray-300">Date:</label>
           <input type="date" id="dateFilter" class="px-2 py-1 border border-gray-300 rounded-md dark:bg-darkcard dark:border-gray-600 dark:text-white" />
           <button id="clearDate" class="text-sm text-blue-600 hover:underline">Clear</button>
 
@@ -55,15 +55,15 @@
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-        <div class="bg-white dark:bg-darkcard text-center rounded-2xl shadow-md p-6 transition hover:shadow-lg">
+        <div class="bg-white dark:bg-darkcard text-center rounded-2xl shadow-md p-6">
           <div class="text-3xl font-bold animate-pulse" id="issueCount">0</div>
           <div class="text-sm text-gray-600 dark:text-gray-300">Issue Types</div>
         </div>
-        <div class="bg-white dark:bg-darkcard text-center rounded-2xl shadow-md p-6 transition hover:shadow-lg">
+        <div class="bg-white dark:bg-darkcard text-center rounded-2xl shadow-md p-6">
           <div class="text-3xl font-bold" id="slotCount">0</div>
           <div class="text-sm text-gray-600 dark:text-gray-300">Total Slots</div>
         </div>
-        <div class="bg-white dark:bg-darkcard text-center rounded-2xl shadow-md p-6 transition hover:shadow-lg">
+        <div class="bg-white dark:bg-darkcard text-center rounded-2xl shadow-md p-6">
           <div class="text-3xl font-bold text-red-600 animate-pulse" id="dailyLoss">$0.00</div>
           <div class="text-sm text-gray-600 dark:text-gray-300">Daily Loss</div>
         </div>
@@ -113,8 +113,7 @@
         .then(json => {
           const allRows = json.data || [];
 
-          // Fill client dropdown
-          const clientIds = [...new Set(allRows.map(row => row.clientId))];
+          const clientIds = [...new Set(allRows.map(r => r.clientId))];
           clientIds.forEach(id => {
             const opt = document.createElement('option');
             opt.value = id;
@@ -150,25 +149,20 @@
               }
             });
 
-            // Update title
-            const title = document.getElementById('dashboardTitle');
-            if (selectedDate) {
-              title.textContent = `AdPulse Guard – Summary for ${selectedDate}`;
-            } else {
-              title.textContent = 'AdPulse Guard – Overall Summary';
-            }
+            document.getElementById('dashboardTitle').textContent =
+              selectedDate ? `AdPulse Guard – Summary for ${selectedDate}` : 'AdPulse Guard – Overall Summary';
 
             document.getElementById('issueCount').textContent = Object.keys(issueTypes).length;
             document.getElementById('slotCount').textContent = totalSlots;
             const lossElem = document.getElementById('dailyLoss');
-            lossElem.textContent = `$${totalLoss.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            lossElem.textContent = `$${totalLoss.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
             lossElem.classList.toggle('text-red-600', totalLoss > 3000);
             lossElem.classList.toggle('animate-pulse', totalLoss > 3000);
+
             if (totalLoss === 0 && selectedDate) {
               confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
             }
 
-            // Top offender
             const box = document.getElementById('topOffenderBox');
             if (topSlot) {
               box.classList.remove('hidden');
@@ -180,7 +174,6 @@
               box.classList.add('hidden');
             }
 
-            // Charts
             if (issueChart) issueChart.destroy();
             issueChart = new Chart(document.getElementById('issueChart'), {
               type: 'bar',
@@ -192,7 +185,7 @@
                   backgroundColor: '#3b82f6'
                 }]
               },
-              options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+              options: { responsive: true, maintainAspectRatio: false }
             });
 
             if (severityChart) severityChart.destroy();
@@ -202,26 +195,21 @@
                 labels: Object.keys(severities),
                 datasets: [{
                   data: Object.values(severities),
-                  backgroundColor: Object.keys(severities).map(sev => {
-                    if (sev === 'high') return '#dc2626';
-                    if (sev === 'medium') return '#f59e0b';
-                    return '#16a34a';
-                  })
+                  backgroundColor: Object.keys(severities).map(s =>
+                    s === 'high' ? '#dc2626' : s === 'medium' ? '#f59e0b' : '#16a34a')
                 }]
               },
-              options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } } }
+              options: { responsive: true, maintainAspectRatio: false }
             });
 
             if (lossTrendChart) lossTrendChart.destroy();
-            const trendLabels = Object.keys(dailyTotals).sort();
-            const trendData = trendLabels.map(d => dailyTotals[d]);
             lossTrendChart = new Chart(document.getElementById('lossTrendChart'), {
               type: 'line',
               data: {
-                labels: trendLabels,
+                labels: Object.keys(dailyTotals).sort(),
                 datasets: [{
                   label: 'Daily Loss ($)',
-                  data: trendData,
+                  data: Object.values(dailyTotals),
                   borderColor: '#3b82f6',
                   tension: 0.3
                 }]
