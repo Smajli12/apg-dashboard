@@ -27,7 +27,10 @@
     <div class="max-w-6xl mx-auto py-8 px-4">
       <div class="flex justify-between mb-4 items-center gap-4 flex-wrap">
         <div>
-          <label for="dateFilter" class="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">Filter by Date:</label>
+          $1
+<select id="clientFilter" class="ml-4 px-2 py-1 border border-gray-300 rounded-md dark:bg-darkcard dark:border-gray-600 dark:text-white">
+  <option value="">All Clients</option>
+</select>
           <input type="date" id="dateFilter" class="px-2 py-1 border border-gray-300 rounded-md dark:bg-darkcard dark:border-gray-600 dark:text-white" />
           <button id="clearDate" class="ml-2 text-sm text-blue-600 hover:underline">Clear</button>
         </div>
@@ -41,7 +44,15 @@
   AdPulse Guard – Overall Summary
 </h1>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div id="topOffenderBox" class="bg-white dark:bg-darkcard text-left rounded-2xl shadow-md p-6 mb-4 hidden">
+  <h2 class="text-lg font-semibold mb-2">🚨 Top Offender Slot</h2>
+  <p><strong>Slot:</strong> <span id="offenderSlot"></span></p>
+  <p><strong>Loss:</strong> <span id="offenderLoss"></span></p>
+  <p><strong>Page:</strong> <span id="offenderPage"></span></p>
+  <p><strong>Issue:</strong> <span id="offenderIssue"></span></p>
+</div>
+
+$1
         <div class="bg-white dark:bg-darkcard text-center rounded-2xl shadow-md p-6 transition hover:shadow-lg">
           <div class="text-3xl font-bold animate-pulse" id="issueCount">0</div>
           <div class="text-sm text-gray-600 dark:text-gray-300">Issue Types</div>
@@ -98,21 +109,14 @@ let issueChart, severityChart, lossTrendChart;
           const dateInput = document.getElementById('dateFilter');
           const clearDate = document.getElementById('clearDate');
 
-          function updateDashboard(rows, selectedDate = null) {
-  const title = document.getElementById('dashboardTitle');
-  if (selectedDate) {
-    const displayDate = new Date(selectedDate).toLocaleDateString();
-    title.textContent = `AdPulse Guard – Summary for ${displayDate}`;
-  } else {
-    title.textContent = 'AdPulse Guard – Overall Summary';
-  }
-            const issueTypes = {};
-            const severities = {};
-            const dailyTotals = {};
-            let totalSlots = 0;
+          $1
+  let topLoss = 0;
+  let topSlot = null;
+  const selectedClient = document.getElementById('clientFilter').value;
             let totalLoss = 0;
 
-            rows.forEach(row => {
+            $1
+    if (selectedClient && row.clientId !== selectedClient) return;
               const rawType = row.issueType?.trim() || 'unknown_issue';
               const label = labelMap[rawType] || rawType;
               const severity = row.severity?.trim().toLowerCase() || 'unknown';
@@ -127,7 +131,11 @@ let issueChart, severityChart, lossTrendChart;
               dailyTotals[dateKey] += loss;
 
               totalSlots++;
-              totalLoss += loss;
+              $1
+    if (loss > topLoss) {
+      topLoss = loss;
+      topSlot = row;
+    }
             });
 
             document.getElementById('issueCount').textContent = Object.keys(issueTypes).length;
@@ -142,7 +150,18 @@ let issueChart, severityChart, lossTrendChart;
               confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
             }
 
-            document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
+            $1
+
+  const box = document.getElementById('topOffenderBox');
+  if (topSlot) {
+    box.classList.remove('hidden');
+    document.getElementById('offenderSlot').textContent = topSlot.slotId;
+    document.getElementById('offenderLoss').textContent = `$${topLoss.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    document.getElementById('offenderPage').textContent = topSlot.pageUrl;
+    document.getElementById('offenderIssue').textContent = labelMap[topSlot.issueType] || topSlot.issueType;
+  } else {
+    box.classList.add('hidden');
+  }
 
             if (issueChart) issueChart.destroy();
       issueChart = new Chart(document.getElementById('issueChart'), {
@@ -223,7 +242,20 @@ let issueChart, severityChart, lossTrendChart;
 
           clearDate.addEventListener('click', () => {
             dateInput.value = '';
-            updateDashboard(allRows);
+            const clientFilter = document.getElementById('clientFilter');
+  const clientIds = [...new Set(allRows.map(row => row.clientId))];
+  clientIds.forEach(id => {
+    const opt = document.createElement('option');
+    opt.value = id;
+    opt.textContent = id;
+    clientFilter.appendChild(opt);
+  });
+  clientFilter.addEventListener('change', () => {
+    const date = dateInput.value || null;
+    updateDashboard(allRows, date);
+  });
+
+  $1
           });
 
           updateDashboard(allRows);
