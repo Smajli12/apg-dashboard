@@ -6,22 +6,41 @@
     <title>AdPulse Guard Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif']
+            }
+          }
+        }
+      };
+    </script>
   </head>
-  <body class="bg-gray-50 text-gray-900">
+  <body class="bg-gray-50 text-gray-900 font-sans transition-colors duration-300">
     <div class="max-w-6xl mx-auto py-8 px-4">
-      <h1 class="text-4xl font-bold text-center mb-8">AdPulse Guard – Dashboard</h1>
+      <!-- Dark Mode Toggle -->
+      <div class="flex justify-end mb-4">
+        <button id="darkToggle" class="px-3 py-1 text-sm rounded bg-gray-200 hover:bg-gray-300 transition">
+          Toggle Dark Mode
+        </button>
+      </div>
+
+      <h1 class="text-4xl font-extrabold text-center mb-8 tracking-tight">AdPulse Guard – Dashboard</h1>
 
       <!-- Stats -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div class="bg-white rounded-xl shadow p-6 text-center">
-          <div class="text-3xl font-bold" id="issueCount">0</div>
+        <div class="bg-white rounded-2xl shadow-md p-6 text-center transition hover:shadow-lg">
+          <div class="text-3xl font-bold animate-pulse" id="issueCount">0</div>
           <div class="text-sm text-gray-600">Issue Types</div>
         </div>
-        <div class="bg-white rounded-xl shadow p-6 text-center">
+        <div class="bg-white rounded-2xl shadow-md p-6 text-center transition hover:shadow-lg">
           <div class="text-3xl font-bold" id="slotCount">0</div>
           <div class="text-sm text-gray-600">Total Slots</div>
         </div>
-        <div class="bg-white rounded-xl shadow p-6 text-center">
+        <div class="bg-white rounded-2xl shadow-md p-6 text-center transition hover:shadow-lg">
           <div class="text-3xl font-bold" id="dailyLoss">$0.00</div>
           <div class="text-sm text-gray-600">Daily Loss</div>
         </div>
@@ -29,10 +48,10 @@
 
       <!-- Charts -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="bg-white rounded-xl shadow p-4">
+        <div class="bg-white rounded-2xl shadow-md p-4">
           <canvas id="issueChart" class="h-64"></canvas>
         </div>
-        <div class="bg-white rounded-xl shadow p-4">
+        <div class="bg-white rounded-2xl shadow-md p-4">
           <canvas id="severityChart" class="h-64"></canvas>
         </div>
       </div>
@@ -52,15 +71,24 @@
           let totalLoss = 0;
 
           rows.forEach(row => {
-            issueTypes[row.issueType] = (issueTypes[row.issueType] || 0) + 1;
-            severities[row.severity] = (severities[row.severity] || 0) + 1;
+            const issue = row.issueType?.trim() || 'unknown_issue';
+            const severity = row.severity?.trim() || 'unknown';
+            const loss = parseFloat(row.estimatedDailyRevenueRisk) || 0;
+
+            issueTypes[issue] = (issueTypes[issue] || 0) + 1;
+            severities[severity] = (severities[severity] || 0) + 1;
             totalSlots += 1;
-            totalLoss += Number(row.estimatedDailyRevenueRisk) || 0;
+            totalLoss += loss;
           });
 
           document.getElementById('issueCount').textContent = Object.keys(issueTypes).length;
           document.getElementById('slotCount').textContent = totalSlots;
-          document.getElementById('dailyLoss').textContent = `$${totalLoss.toFixed(2)}`;
+
+          const lossElem = document.getElementById('dailyLoss');
+          lossElem.textContent = `$${totalLoss.toFixed(2)}`;
+          if (totalLoss > 3000) {
+            lossElem.classList.add('text-red-600', 'animate-pulse');
+          }
 
           new Chart(document.getElementById('issueChart'), {
             type: 'bar',
@@ -75,9 +103,21 @@
             options: {
               responsive: true,
               maintainAspectRatio: false,
-              plugins: { legend: { display: false } },
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    label: (context) => `Count: ${context.parsed.y}`
+                  }
+                }
+              },
               scales: {
-                y: { beginAtZero: true }
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    stepSize: 20
+                  }
+                }
               }
             }
           });
@@ -91,7 +131,7 @@
                 backgroundColor: Object.keys(severities).map(sev => {
                   if (sev.toLowerCase() === 'high') return '#dc2626';
                   if (sev.toLowerCase() === 'medium') return '#f59e0b';
-                  return '#16a34a'; // low
+                  return '#16a34a';
                 })
               }]
             },
@@ -109,6 +149,15 @@
           alert('Could not load dashboard data.');
           console.error(err);
         });
+
+      // Dark Mode Toggle
+      const toggle = document.getElementById('darkToggle');
+      toggle.addEventListener('click', () => {
+        document.body.classList.toggle('bg-gray-50');
+        document.body.classList.toggle('bg-gray-900');
+        document.body.classList.toggle('text-gray-900');
+        document.body.classList.toggle('text-white');
+      });
     </script>
   </body>
 </html>
