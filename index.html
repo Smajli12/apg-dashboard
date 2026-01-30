@@ -97,6 +97,8 @@
           let totalSlots = 0;
           let totalLoss = 0;
 
+          const today = new Date().toISOString().split('T')[0];
+
           rows.forEach(row => {
             const rawType = row.issueType?.trim() || 'unknown_issue';
             const label = labelMap[rawType] || rawType;
@@ -110,7 +112,7 @@
             dailyTotals[dateKey] += loss;
 
             totalSlots++;
-            totalLoss += loss;
+            if (dateKey === today) totalLoss += loss;
           });
 
           document.getElementById('issueCount').textContent = Object.keys(issueTypes).length;
