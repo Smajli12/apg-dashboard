@@ -22,12 +22,14 @@
       };
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   </head>
   <body class="bg-gray-50 dark:bg-darkbg text-gray-900 dark:text-white font-sans transition-colors duration-300 min-h-screen">
     <div class="max-w-6xl mx-auto py-8 px-4">
       <div class="flex justify-between mb-4 items-center gap-4 flex-wrap">
         <div class="flex flex-wrap items-center gap-2">
-          <label for="dateFilter" class="text-sm font-medium text-gray-700 dark:text-gray-300">Date:</label>
+          <label for="dateFilter" class="text-sm font-medium text-gray-700 dark:text-gray-300">Filter by Date:</label>
           <input type="date" id="dateFilter" class="px-2 py-1 border border-gray-300 rounded-md dark:bg-darkcard dark:border-gray-600 dark:text-white" />
           <button id="clearDate" class="text-sm text-blue-600 hover:underline">Clear</button>
 
@@ -55,15 +57,15 @@
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-        <div class="bg-white dark:bg-darkcard text-center rounded-2xl shadow-md p-6">
+        <div class="bg-white dark:bg-darkcard text-center rounded-2xl shadow-md p-6 transition hover:shadow-lg">
           <div class="text-3xl font-bold animate-pulse" id="issueCount">0</div>
           <div class="text-sm text-gray-600 dark:text-gray-300">Issue Types</div>
         </div>
-        <div class="bg-white dark:bg-darkcard text-center rounded-2xl shadow-md p-6">
+        <div class="bg-white dark:bg-darkcard text-center rounded-2xl shadow-md p-6 transition hover:shadow-lg">
           <div class="text-3xl font-bold" id="slotCount">0</div>
           <div class="text-sm text-gray-600 dark:text-gray-300">Total Slots</div>
         </div>
-        <div class="bg-white dark:bg-darkcard text-center rounded-2xl shadow-md p-6">
+        <div class="bg-white dark:bg-darkcard text-center rounded-2xl shadow-md p-6 transition hover:shadow-lg">
           <div class="text-3xl font-bold text-red-600 animate-pulse" id="dailyLoss">$0.00</div>
           <div class="text-sm text-gray-600 dark:text-gray-300">Daily Loss</div>
         </div>
@@ -87,12 +89,8 @@
       </p>
     </div>
 
-    <script type="module">
-      import confetti from 'https://cdn.skypack.dev/canvas-confetti';
-      import Chart from 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js';
-
+    <script>
       const SHEET_URL = 'https://script.google.com/macros/s/AKfycbx-PFUcYyEXUR7Thw8kqzAWpCX74XY-4c-Si9myS69jloI9Vir_5YaZLXGCUiUquxMn/exec';
-
       const labelMap = {
         gpt_not_loaded: 'GPT not loaded',
         wrong_network: 'Wrong network configuration',
@@ -113,7 +111,7 @@
         .then(json => {
           const allRows = json.data || [];
 
-          const clientIds = [...new Set(allRows.map(r => r.clientId))];
+          const clientIds = [...new Set(allRows.map(row => row.clientId))];
           clientIds.forEach(id => {
             const opt = document.createElement('option');
             opt.value = id;
@@ -149,8 +147,9 @@
               }
             });
 
-            document.getElementById('dashboardTitle').textContent =
-              selectedDate ? `AdPulse Guard – Summary for ${selectedDate}` : 'AdPulse Guard – Overall Summary';
+            // Title
+            const title = document.getElementById('dashboardTitle');
+            title.textContent = selectedDate ? `AdPulse Guard – Summary for ${selectedDate}` : 'AdPulse Guard – Overall Summary';
 
             document.getElementById('issueCount').textContent = Object.keys(issueTypes).length;
             document.getElementById('slotCount').textContent = totalSlots;
@@ -158,7 +157,6 @@
             lossElem.textContent = `$${totalLoss.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
             lossElem.classList.toggle('text-red-600', totalLoss > 3000);
             lossElem.classList.toggle('animate-pulse', totalLoss > 3000);
-
             if (totalLoss === 0 && selectedDate) {
               confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
             }
@@ -195,8 +193,11 @@
                 labels: Object.keys(severities),
                 datasets: [{
                   data: Object.values(severities),
-                  backgroundColor: Object.keys(severities).map(s =>
-                    s === 'high' ? '#dc2626' : s === 'medium' ? '#f59e0b' : '#16a34a')
+                  backgroundColor: Object.keys(severities).map(sev => {
+                    if (sev === 'high') return '#dc2626';
+                    if (sev === 'medium') return '#f59e0b';
+                    return '#16a34a';
+                  })
                 }]
               },
               options: { responsive: true, maintainAspectRatio: false }
@@ -209,7 +210,7 @@
                 labels: Object.keys(dailyTotals).sort(),
                 datasets: [{
                   label: 'Daily Loss ($)',
-                  data: Object.values(dailyTotals),
+                  data: Object.keys(dailyTotals).sort().map(d => dailyTotals[d]),
                   borderColor: '#3b82f6',
                   tension: 0.3
                 }]
