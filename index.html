@@ -1,40 +1,28 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AdPulse Guard Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
     <script>
       tailwind.config = {
+        darkMode: 'class',
         theme: {
           extend: {
             fontFamily: {
               sans: ['Inter', 'sans-serif']
             },
             colors: {
-              darkbg: '#1e1e2f',
               darkcard: '#2a2a3b'
             }
           }
         }
       };
     </script>
-    <style>
-      .dark-mode {
-        background-color: #1e1e2f;
-        color: #f3f4f6;
-      }
-
-      .dark-mode .card {
-        background-color: #2a2a3b;
-        color: #f3f4f6;
-      }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
   </head>
-  <body class="bg-gray-50 text-gray-900 font-sans transition-colors duration-300">
+  <body class="bg-gray-50 text-gray-900 font-sans transition-colors duration-300 min-h-screen">
     <div class="max-w-6xl mx-auto py-8 px-4">
       <!-- Dark Mode Toggle -->
       <div class="flex justify-end mb-4 items-center gap-2">
@@ -46,35 +34,38 @@
         <span class="text-sm">🌙</span>
       </div>
 
-      <h1 class="text-4xl font-extrabold text-center mb-8 tracking-tight">AdPulse Guard – Dashboard</h1>
+      <h1 class="text-4xl font-extrabold text-center mb-8 tracking-tight dark:text-white">
+        AdPulse Guard – Dashboard
+      </h1>
 
       <!-- Stats -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div class="card bg-white rounded-2xl shadow-md p-6 text-center transition hover:shadow-lg">
-          <div class="text-3xl font-bold animate-pulse" id="issueCount">0</div>
-          <div class="text-sm text-gray-600">Issue Types</div>
+        <div class="bg-white dark:bg-darkcard text-center rounded-2xl shadow-md p-6 transition hover:shadow-lg">
+          <div class="text-3xl font-bold animate-pulse text-gray-900 dark:text-white" id="issueCount">0</div>
+          <div class="text-sm text-gray-600 dark:text-gray-300">Issue Types</div>
         </div>
-        <div class="card bg-white rounded-2xl shadow-md p-6 text-center transition hover:shadow-lg">
-          <div class="text-3xl font-bold" id="slotCount">0</div>
-          <div class="text-sm text-gray-600">Total Slots</div>
+        <div class="bg-white dark:bg-darkcard text-center rounded-2xl shadow-md p-6 transition hover:shadow-lg">
+          <div class="text-3xl font-bold text-gray-900 dark:text-white" id="slotCount">0</div>
+          <div class="text-sm text-gray-600 dark:text-gray-300">Total Slots</div>
         </div>
-        <div class="card bg-white rounded-2xl shadow-md p-6 text-center transition hover:shadow-lg">
-          <div class="text-3xl font-bold" id="dailyLoss">$0.00</div>
-          <div class="text-sm text-gray-600">Daily Loss</div>
+        <div class="bg-white dark:bg-darkcard text-center rounded-2xl shadow-md p-6 transition hover:shadow-lg">
+          <div class="text-3xl font-bold text-gray-900 dark:text-white" id="dailyLoss">$0.00</div>
+          <div class="text-sm text-gray-600 dark:text-gray-300">Daily Loss</div>
         </div>
       </div>
 
       <!-- Charts -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="card bg-white rounded-2xl shadow-md p-4">
+        <div class="bg-white dark:bg-darkcard rounded-2xl shadow-md p-4">
           <canvas id="issueChart" class="h-64"></canvas>
         </div>
-        <div class="card bg-white rounded-2xl shadow-md p-4">
+        <div class="bg-white dark:bg-darkcard rounded-2xl shadow-md p-4">
           <canvas id="severityChart" class="h-64"></canvas>
         </div>
       </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
       const SHEET_URL = 'https://script.google.com/macros/s/AKfycbx-PFUcYyEXUR7Thw8kqzAWpCX74XY-4c-Si9myS69jloI9Vir_5YaZLXGCUiUquxMn/exec';
 
@@ -172,10 +163,23 @@
           console.error(err);
         });
 
-      // Dark mode toggle logic
+      // 🌙 DARK MODE TOGGLE with localStorage
       const toggle = document.getElementById('darkToggle');
+
+      // On load, check localStorage
+      if (localStorage.getItem('theme') === 'dark') {
+        document.documentElement.classList.add('dark');
+        toggle.checked = true;
+      }
+
       toggle.addEventListener('change', () => {
-        document.body.classList.toggle('dark-mode');
+        if (toggle.checked) {
+          document.documentElement.classList.add('dark');
+          localStorage.setItem('theme', 'dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+          localStorage.setItem('theme', 'light');
+        }
       });
     </script>
   </body>
