@@ -24,7 +24,6 @@
   </head>
   <body class="bg-gray-50 text-gray-900 font-sans transition-colors duration-300 min-h-screen">
     <div class="max-w-6xl mx-auto py-8 px-4">
-      <!-- Dark Mode Toggle -->
       <div class="flex justify-end mb-4 items-center gap-2">
         <span class="text-sm">🌞</span>
         <label class="relative inline-flex items-center cursor-pointer">
@@ -38,7 +37,6 @@
         AdPulse Guard – Dashboard
       </h1>
 
-      <!-- Stats -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <div class="bg-white dark:bg-darkcard text-center rounded-2xl shadow-md p-6 transition hover:shadow-lg">
           <div class="text-3xl font-bold animate-pulse text-gray-900 dark:text-white" id="issueCount">0</div>
@@ -54,7 +52,13 @@
         </div>
       </div>
 
-      <!-- Charts -->
+      <div class="flex gap-2 justify-center mt-6 mb-4">
+        <button data-severity="all" class="px-3 py-1 bg-blue-100 text-blue-800 rounded hover:bg-blue-200 dark:bg-blue-900 dark:text-white">All</button>
+        <button data-severity="high" class="px-3 py-1 bg-red-100 text-red-800 rounded hover:bg-red-200 dark:bg-red-900 dark:text-white">High</button>
+        <button data-severity="medium" class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200 dark:bg-yellow-900 dark:text-white">Medium</button>
+        <button data-severity="low" class="px-3 py-1 bg-green-100 text-green-800 rounded hover:bg-green-200 dark:bg-green-900 dark:text-white">Low</button>
+      </div>
+
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="bg-white dark:bg-darkcard rounded-2xl shadow-md p-4">
           <canvas id="issueChart" class="h-64"></canvas>
@@ -62,11 +66,21 @@
         <div class="bg-white dark:bg-darkcard rounded-2xl shadow-md p-4">
           <canvas id="severityChart" class="h-64"></canvas>
         </div>
+        <div class="bg-white dark:bg-darkcard rounded-2xl shadow-md p-4 col-span-2 mt-6">
+          <h2 class="text-lg font-semibold mb-2 dark:text-white">Daily Loss Trend</h2>
+          <canvas id="lossTrendChart" class="h-64"></canvas>
+        </div>
       </div>
+
+      <p class="text-xs text-gray-400 dark:text-gray-500 mt-8 text-right">
+        Last updated: <span id="lastUpdated">loading...</span>
+      </p>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script type="module">
+      import confetti from 'https://cdn.skypack.dev/canvas-confetti';
+
       const SHEET_URL = 'https://script.google.com/macros/s/AKfycbx-PFUcYyEXUR7Thw8kqzAWpCX74XY-4c-Si9myS69jloI9Vir_5YaZLXGCUiUquxMn/exec';
 
       const labelMap = {
@@ -85,29 +99,37 @@
 
           const issueTypes = {};
           const severities = {};
+          const dailyTotals = {};
           let totalSlots = 0;
           let totalLoss = 0;
 
           rows.forEach(row => {
             const rawType = row.issueType?.trim() || 'unknown_issue';
             const label = labelMap[rawType] || rawType;
-            const severity = row.severity?.trim() || 'unknown';
+            const severity = row.severity?.trim().toLowerCase() || 'unknown';
             const loss = parseFloat(row.estimatedDailyRevenueRisk) || 0;
+            const dateKey = new Date(row.timestamp).toISOString().split('T')[0];
 
             issueTypes[label] = (issueTypes[label] || 0) + 1;
             severities[severity] = (severities[severity] || 0) + 1;
-            totalSlots += 1;
+            dailyTotals[dateKey] = (dailyTotals[dateKey] || 0) + loss;
+
+            totalSlots++;
             totalLoss += loss;
           });
 
           document.getElementById('issueCount').textContent = Object.keys(issueTypes).length;
           document.getElementById('slotCount').textContent = totalSlots;
-
           const lossElem = document.getElementById('dailyLoss');
           lossElem.textContent = `$${totalLoss.toFixed(2)}`;
           if (totalLoss > 3000) {
             lossElem.classList.add('text-red-600', 'animate-pulse');
           }
+          if (totalLoss === 0) {
+            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+          }
+
+          document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
 
           new Chart(document.getElementById('issueChart'), {
             type: 'bar',
@@ -143,9 +165,9 @@
               datasets: [{
                 data: Object.values(severities),
                 backgroundColor: Object.keys(severities).map(sev => {
-                  if (sev.toLowerCase() === 'high') return '#dc2626';
-                  if (sev.toLowerCase() === 'medium') return '#f59e0b';
-                  return '#16a34a'; // low
+                  if (sev === 'high') return '#dc2626';
+                  if (sev === 'medium') return '#f59e0b';
+                  return '#16a34a';
                 })
               }]
             },
@@ -157,21 +179,46 @@
               }
             }
           });
-        })
-        .catch(err => {
-          alert('Could not load dashboard data.');
-          console.error(err);
+
+          const trendLabels = Object.keys(dailyTotals).sort();
+          const trendData = trendLabels.map(d => dailyTotals[d]);
+
+          new Chart(document.getElementById('lossTrendChart'), {
+            type: 'line',
+            data: {
+              labels: trendLabels,
+              datasets: [{
+                label: 'Daily Loss ($)',
+                data: trendData,
+                borderColor: '#3b82f6',
+                fill: false,
+                tension: 0.3
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { position: 'top' }
+              },
+              scales: { y: { beginAtZero: true } }
+            }
+          });
+
+          document.querySelectorAll('[data-severity]').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const level = btn.getAttribute('data-severity');
+              const filtered = level === 'all' ? rows : rows.filter(r => (r.severity || '').toLowerCase() === level);
+              alert(`Filtered to ${filtered.length} issue(s) with severity: ${level}`);
+            });
+          });
         });
 
-      // 🌙 DARK MODE TOGGLE with localStorage
       const toggle = document.getElementById('darkToggle');
-
-      // On load, check localStorage
       if (localStorage.getItem('theme') === 'dark') {
         document.documentElement.classList.add('dark');
         toggle.checked = true;
       }
-
       toggle.addEventListener('change', () => {
         if (toggle.checked) {
           document.documentElement.classList.add('dark');
