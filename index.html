@@ -26,10 +26,11 @@
   <body class="bg-gray-50 dark:bg-darkbg text-gray-900 dark:text-white font-sans transition-colors duration-300 min-h-screen">
     <div class="max-w-6xl mx-auto py-8 px-4">
       <div class="flex justify-end mb-4 items-center gap-2">
-        <span class="text-sm">🌞</span>
-        <label class="relative inline-flex items-center cursor-pointer">
-          <input type="checkbox" id="darkToggle" class="sr-only peer" />
-          <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full transition-all duration-300 relative peer-checked:bg-blue-600 dark:bg-gray-600 overflow-hidden"><div class="absolute top-0 left-0 w-full h-full flex items-center px-1"><div class="h-4 w-4 bg-white rounded-full shadow-md transform transition-transform duration-300 peer-checked:translate-x-5"></div></div></div>
+  <button id="darkModeBtn" class="flex items-center gap-2 px-4 py-1 bg-gray-200 dark:bg-gray-700 text-sm rounded-full transition-colors hover:bg-gray-300 dark:hover:bg-gray-600">
+    <span class="text-lg">🌓</span>
+    <span id="modeLabel">Dark Mode</span>
+  </button>
+</div></div></div>
         </label>
         <span class="text-sm">🌙</span>
       </div>
@@ -203,20 +204,23 @@
           });
         });
 
-      const toggle = document.getElementById('darkToggle');
-      if (localStorage.getItem('theme') === 'dark') {
-        document.documentElement.classList.add('dark');
-        toggle.checked = true;
-      }
-      toggle.addEventListener('change', () => {
-        if (toggle.checked) {
-          document.documentElement.classList.add('dark');
-          localStorage.setItem('theme', 'dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-          localStorage.setItem('theme', 'light');
-        }
-      });
+      const darkModeBtn = document.getElementById('darkModeBtn');
+const modeLabel = document.getElementById('modeLabel');
+
+function updateModeLabel() {
+  modeLabel.textContent = document.documentElement.classList.contains('dark') ? 'Light Mode' : 'Dark Mode';
+}
+
+if (localStorage.getItem('theme') === 'dark') {
+  document.documentElement.classList.add('dark');
+}
+updateModeLabel();
+
+darkModeBtn.addEventListener('click', () => {
+  const isDark = document.documentElement.classList.toggle('dark');
+  localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  updateModeLabel();
+});
     </script>
   </body>
 </html>
