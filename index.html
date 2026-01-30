@@ -5,34 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AdPulse Guard Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-50 text-gray-900">
-  <div class="max-w-5xl mx-auto px-4 py-8">
-    <h1 class="text-3xl font-bold text-center mb-8">AdPulse Guard – Dashboard</h1>
+<body class="bg-gray-50 text-gray-800">
+  <div class="max-w-6xl mx-auto px-4 py-8">
+    <h1 class="text-4xl font-bold text-center mb-8">AdPulse Guard &ndash; Dashboard</h1>
 
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center mb-8">
-      <div class="bg-white p-6 rounded-2xl shadow">
-        <p class="text-2xl font-bold" id="issueTypes">0</p>
-        <p class="text-sm text-gray-500">Issue Types</p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+      <div class="bg-white shadow rounded-xl p-6 text-center">
+        <div class="text-3xl font-bold" id="issueTypeCount">0</div>
+        <div class="text-sm text-gray-500">Issue Types</div>
       </div>
-      <div class="bg-white p-6 rounded-2xl shadow">
-        <p class="text-2xl font-bold" id="totalSlots">0</p>
-        <p class="text-sm text-gray-500">Total Slots</p>
+      <div class="bg-white shadow rounded-xl p-6 text-center">
+        <div class="text-3xl font-bold" id="slotCount">0</div>
+        <div class="text-sm text-gray-500">Total Slots</div>
       </div>
-      <div class="bg-white p-6 rounded-2xl shadow">
-        <p class="text-2xl font-bold" id="dailyLoss">$0.00</p>
-        <p class="text-sm text-gray-500">Daily Loss</p>
+      <div class="bg-white shadow rounded-xl p-6 text-center">
+        <div class="text-3xl font-bold" id="dailyLoss">$0.00</div>
+        <div class="text-sm text-gray-500">Daily Loss</div>
       </div>
     </div>
 
-    <div class="charts flex flex-wrap justify-center gap-6 mt-6">
-      <div class="w-full md:w-[500px] h-[300px] bg-white p-4 rounded-2xl shadow">
-        <canvas id="barChart"></canvas>
-      </div>
-      <div class="w-full md:w-[400px] h-[300px] bg-white p-4 rounded-2xl shadow">
-        <canvas id="pieChart"></canvas>
-      </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <canvas id="issueChart" class="w-full h-64"></canvas>
+      <canvas id="severityChart" class="w-full h-64"></canvas>
     </div>
   </div>
 
@@ -40,30 +36,49 @@
     const SHEET_URL = 'https://script.google.com/macros/s/AKfycbx-PFUcYyEXUR7Thw8kqzAWpCX74XY-4c-Si9myS69jloI9Vir_5YaZLXGCUiUquxMn/exec';
 
     async function fetchData() {
-      const res = await fetch(SHEET_URL);
-      const { data } = await res.json();
+      try {
+        const res = await fetch(SHEET_URL);
+        const { data } = await res.json();
+        return data || [];
+      } catch (err) {
+        console.error('Failed to fetch data', err);
+        return [];
+      }
+    }
 
-      if (!data) throw new Error('Could not load dashboard data.');
+    function groupBy(arr, key) {
+      return arr.reduce((acc, obj) => {
+        const val = obj[key];
+        acc[val] = (acc[val] || 0) + 1;
+        return acc;
+      }, {});
+    }
 
-      const issueCounts = {};
-      const severityCounts = {};
-      const slotSet = new Set();
-      let totalLoss = 0;
+    function sumRevenue(data) {
+      return data.reduce((sum, row) => {
+        const val = parseFloat(row.estimatedDailyRevenueRisk);
+        return sum + (isNaN(val) ? 0 : val);
+      }, 0);
+    }
 
-      data.forEach(row => {
-        if (row.issueType) issueCounts[row.issueType] = (issueCounts[row.issueType] || 0) + 1;
-        if (row.severity) severityCounts[row.severity.toUpperCase()] = (severityCounts[row.severity.toUpperCase()] || 0) + 1;
-        if (row.slotId) slotSet.add(row.slotId);
+    function formatCurrency(num) {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency', currency: 'USD'
+      }).format(num);
+    }
 
-        const risk = parseFloat(row.estimatedDailyRevenueRisk);
-        if (!isNaN(risk)) totalLoss += risk;
-      });
+    async function renderDashboard() {
+      const data = await fetchData();
+      if (!data.length) return;
 
-      document.getElementById('issueTypes').innerText = Object.keys(issueCounts).length;
-      document.getElementById('totalSlots').innerText = slotSet.size;
-      document.getElementById('dailyLoss').innerText = `$${totalLoss.toFixed(2)}`;
+      document.getElementById('issueTypeCount').textContent = new Set(data.map(d => d.issueType)).size;
+      document.getElementById('slotCount').textContent = new Set(data.map(d => d.slotId)).size;
+      document.getElementById('dailyLoss').textContent = formatCurrency(sumRevenue(data));
 
-      new Chart(document.getElementById('barChart'), {
+      const issueCounts = groupBy(data, 'issueType');
+      const severityCounts = groupBy(data, 'severity');
+
+      new Chart(document.getElementById('issueChart'), {
         type: 'bar',
         data: {
           labels: Object.keys(issueCounts),
@@ -76,39 +91,34 @@
         options: {
           responsive: true,
           plugins: { legend: { display: false } },
-          scales: { y: { beginAtZero: true } }
+          scales: {
+            x: { ticks: { maxRotation: 40, minRotation: 20 } },
+            y: { beginAtZero: true }
+          }
         }
       });
 
-      new Chart(document.getElementById('pieChart'), {
+      new Chart(document.getElementById('severityChart'), {
         type: 'pie',
         data: {
           labels: Object.keys(severityCounts),
           datasets: [{
             data: Object.values(severityCounts),
-            backgroundColor: Object.keys(severityCounts).map(s => {
-              if (s === 'HIGH') return '#dc2626';
-              if (s === 'MEDIUM') return '#f59e0b';
-              return '#16a34a';
-            })
+            backgroundColor: [
+              '#dc2626', // HIGH
+              '#f59e0b', // MEDIUM
+              '#16a34a'  // LOW
+            ]
           }]
         },
         options: {
           responsive: true,
-          plugins: {
-            legend: {
-              labels: {
-                color: '#111'
-              }
-            }
-          }
+          plugins: { legend: { position: 'top' } }
         }
       });
     }
 
-    fetchData().catch(err => {
-      alert(err.message);
-    });
+    renderDashboard();
   </script>
 </body>
 </html>
