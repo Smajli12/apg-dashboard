@@ -95,26 +95,26 @@
       fetch(SHEET_URL)
   .then(res => res.json())
   .then(json => {
-    let allRows = json.data || [];
+    const allRows = json.data || [];
 
     const dateInput = document.getElementById('dateFilter');
     const clearDate = document.getElementById('clearDate');
 
-    function updateDashboard(filteredRows, selectedDate) {
+    function updateDashboard(rows, selectedDate = null) {
       const issueTypes = {};
       const severities = {};
       const dailyTotals = {};
       let totalSlots = 0;
       let totalLoss = 0;
 
-      const today = new Date().toISOString().split('T')[0];
-
-      filteredRows.forEach(row => {
+      rows.forEach(row => {
         const rawType = row.issueType?.trim() || 'unknown_issue';
         const label = labelMap[rawType] || rawType;
         const severity = row.severity?.trim().toLowerCase() || 'unknown';
         const loss = parseFloat(row.estimatedDailyRevenueRisk) || 0;
         const dateKey = new Date(row.receivedAt).toISOString().split('T')[0];
+
+        if (selectedDate && dateKey !== selectedDate) return;
 
         issueTypes[label] = (issueTypes[label] || 0) + 1;
         severities[severity] = (severities[severity] || 0) + 1;
@@ -122,7 +122,7 @@
         dailyTotals[dateKey] += loss;
 
         totalSlots++;
-        if (!selectedDate || dateKey === selectedDate) totalLoss += loss;
+        totalLoss += loss;
       });
 
       document.getElementById('issueCount').textContent = Object.keys(issueTypes).length;
@@ -133,7 +133,7 @@
       if (totalLoss > 3000) {
         lossElem.classList.add('text-red-600', 'animate-pulse');
       }
-      if (totalLoss === 0) {
+      if (totalLoss === 0 && selectedDate) {
         confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
       }
 
@@ -210,13 +210,16 @@
 
     dateInput.addEventListener('change', () => {
       const selectedDate = dateInput.value;
-      const filtered = allRows.filter(r => new Date(r.receivedAt).toISOString().split('T')[0] === selectedDate);
-      updateDashboard(filtered, selectedDate);
+      updateDashboard(allRows, selectedDate);
     });
 
     clearDate.addEventListener('click', () => {
       dateInput.value = '';
       updateDashboard(allRows);
+    });
+
+    updateDashboard(allRows);
+  });
     });
 
     updateDashboard(allRows);
@@ -250,7 +253,7 @@
           document.getElementById('issueCount').textContent = Object.keys(issueTypes).length;
           document.getElementById('slotCount').textContent = totalSlots;
           const lossElem = document.getElementById('dailyLoss');
-          lossElem.textContent = `$${totalLoss.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+          lossElem.textContent = `$${totalLoss.toFixed(2)}`;
           if (totalLoss > 3000) {
             lossElem.classList.add('text-red-600', 'animate-pulse');
           }
