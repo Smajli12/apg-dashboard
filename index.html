@@ -21,51 +21,76 @@
         }
       };
     </script>
-    <link rel="icon" href="data:,">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <style>
-      .tooltip {
-        position: relative;
-        display: inline-block;
-        cursor: help;
-      }
-      .tooltip .tooltiptext {
-        visibility: hidden;
-        width: 180px;
-        background-color: #333;
-        color: #fff;
-        text-align: center;
-        border-radius: 6px;
-        padding: 5px;
-        position: absolute;
-        z-index: 1;
-        bottom: 125%;
-        left: 50%;
-        transform: translateX(-50%);
-        opacity: 0;
-        transition: opacity 0.3s;
-      }
-      .tooltip:hover .tooltiptext {
-        visibility: visible;
-        opacity: 1;
-      }
-      .fade-in {
-        animation: fadeIn 0.6s ease-in;
-      }
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-    </style>
   </head>
   <body class="bg-gray-50 dark:bg-darkbg text-gray-900 dark:text-white font-sans transition-colors duration-300 min-h-screen">
     <div class="max-w-6xl mx-auto py-8 px-4">
-      <!-- UI content here -->
+      <div class="flex justify-between mb-4 items-center gap-4 flex-wrap">
+        <div class="flex flex-wrap items-center gap-2">
+          <label for="dateFilter" class="text-sm font-medium text-gray-700 dark:text-gray-300">Filter by Date:</label>
+          <input type="date" id="dateFilter" class="px-2 py-1 border border-gray-300 rounded-md dark:bg-darkcard dark:border-gray-600 dark:text-white" />
+          <button id="clearDate" class="text-sm text-blue-600 hover:underline">Clear</button>
+
+          <label for="clientFilter" class="ml-4 text-sm font-medium text-gray-700 dark:text-gray-300">Client:</label>
+          <select id="clientFilter" class="px-2 py-1 border border-gray-300 rounded-md dark:bg-darkcard dark:border-gray-600 dark:text-white">
+            <option value="">All Clients</option>
+          </select>
+        </div>
+        <button id="darkModeBtn" class="flex items-center gap-2 px-3 py-1 bg-gray-200 dark:bg-gray-700 text-sm rounded-full transition-colors hover:bg-gray-300 dark:hover:bg-gray-600">
+          <span class="text-lg">🌓</span>
+          <span id="modeLabel">Dark Mode</span>
+        </button>
+      </div>
+
+      <h1 id="dashboardTitle" class="text-4xl font-extrabold text-center mb-8 tracking-tight">
+        AdPulse Guard – Overall Summary
+      </h1>
+
+      <div id="topOffenderBox" class="bg-white dark:bg-darkcard text-left rounded-2xl shadow-md p-6 mb-6 hidden">
+        <h2 class="text-lg font-semibold mb-2">🚨 Top Offender Slot</h2>
+        <p><strong>Slot:</strong> <span id="offenderSlot"></span></p>
+        <p><strong>Loss:</strong> <span id="offenderLoss"></span></p>
+        <p><strong>Page:</strong> <span id="offenderPage"></span></p>
+        <p><strong>Issue:</strong> <span id="offenderIssue"></span></p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+        <div class="bg-white dark:bg-darkcard text-center rounded-2xl shadow-md p-6 transition hover:shadow-lg">
+          <div class="text-3xl font-bold animate-pulse" id="issueCount">0</div>
+          <div class="text-sm text-gray-600 dark:text-gray-300">Issue Types</div>
+        </div>
+        <div class="bg-white dark:bg-darkcard text-center rounded-2xl shadow-md p-6 transition hover:shadow-lg">
+          <div class="text-3xl font-bold" id="slotCount">0</div>
+          <div class="text-sm text-gray-600 dark:text-gray-300">Total Slots</div>
+        </div>
+        <div class="bg-white dark:bg-darkcard text-center rounded-2xl shadow-md p-6 transition hover:shadow-lg">
+          <div class="text-3xl font-bold text-red-600 animate-pulse" id="dailyLoss">$0.00</div>
+          <div class="text-sm text-gray-600 dark:text-gray-300">Daily Loss</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white dark:bg-darkcard rounded-2xl shadow-md p-4">
+          <canvas id="issueChart" class="h-64"></canvas>
+        </div>
+        <div class="bg-white dark:bg-darkcard rounded-2xl shadow-md p-4">
+          <canvas id="severityChart" class="h-64"></canvas>
+        </div>
+        <div class="bg-white dark:bg-darkcard rounded-2xl shadow-md p-4 col-span-2">
+          <h2 class="text-lg font-semibold mb-2">Daily Loss Trend</h2>
+          <canvas id="lossTrendChart" class="h-64 w-full"></canvas>
+        </div>
+      </div>
+
+      <p class="text-xs text-gray-400 dark:text-gray-500 mt-8 text-right">
+        Last updated: <span id="lastUpdated">loading...</span>
+      </p>
     </div>
+
     <script>
-      window.onload = function () {
+      window.addEventListener('DOMContentLoaded', () => {
         const SHEET_URL = 'https://script.google.com/macros/s/AKfycbx-PFUcYyEXUR7Thw8kqzAWpCX74XY-4c-Si9myS69jloI9Vir_5YaZLXGCUiUquxMn/exec';
         const labelMap = {
           gpt_not_loaded: 'GPT not loaded',
@@ -84,11 +109,11 @@
         const darkModeBtn = document.getElementById('darkModeBtn');
         const modeLabel = document.getElementById('modeLabel');
 
-        function updateModeLabel() {
+        const updateModeLabel = () => {
           if (modeLabel) {
             modeLabel.textContent = document.documentElement.classList.contains('dark') ? 'Light Mode' : 'Dark Mode';
           }
-        }
+        };
 
         if (localStorage.getItem('theme') === 'dark') {
           document.documentElement.classList.add('dark');
@@ -144,11 +169,10 @@
                 }
               });
 
-              const title = document.getElementById('dashboardTitle');
-              if (title) title.textContent = selectedDate ? `AdPulse Guard – Summary for ${selectedDate}` : 'AdPulse Guard – Overall Summary';
-
+              document.getElementById('dashboardTitle').textContent = selectedDate ? `AdPulse Guard – Summary for ${selectedDate}` : 'AdPulse Guard – Overall Summary';
               document.getElementById('issueCount').textContent = Object.keys(issueTypes).length;
               document.getElementById('slotCount').textContent = totalSlots;
+
               const lossElem = document.getElementById('dailyLoss');
               lossElem.textContent = `$${totalLoss.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
               lossElem.classList.toggle('text-red-600', totalLoss > 3000);
@@ -218,7 +242,7 @@
 
             updateDashboard(allRows);
           });
-      }
+      });
     </script>
   </body>
 </html>
