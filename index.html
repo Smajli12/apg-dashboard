@@ -26,6 +26,13 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   </head>
   <body class="bg-gray-50 dark:bg-darkbg text-gray-900 dark:text-white font-sans transition-colors duration-300 min-h-screen">
+    <div id="loadingIndicator" class="flex justify-center items-center space-x-2 text-sm text-gray-500 dark:text-gray-400 mb-4">
+  <svg class="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+  </svg>
+  <span>Loading dashboard data…</span>
+</div>
     <div class="max-w-6xl mx-auto py-8 px-4">
       <div class="flex justify-between mb-4 items-center gap-4 flex-wrap">
         <div class="flex flex-wrap items-center gap-2">
@@ -92,6 +99,7 @@
     <script>
       window.addEventListener('DOMContentLoaded', () => {
         const SHEET_URL = 'https://script.google.com/macros/s/AKfycbx-PFUcYyEXUR7Thw8kqzAWpCX74XY-4c-Si9myS69jloI9Vir_5YaZLXGCUiUquxMn/exec';
+        document.getElementById('loadingIndicator').style.display = 'block';
         const labelMap = {
           gpt_not_loaded: 'GPT not loaded',
           wrong_network: 'Wrong network configuration',
@@ -145,6 +153,7 @@
               const issueTypes = {}, severities = {}, dailyTotals = {};
               let totalSlots = 0, totalLoss = 0;
               let topSlot = null, topLoss = 0;
+              document.getElementById('loadingIndicator').classList.add('hidden');
 
               rows.forEach(row => {
                 const dateKey = new Date(row.receivedAt).toISOString().split('T')[0];
