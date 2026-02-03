@@ -188,7 +188,8 @@
               lossElem.classList.toggle('animate-pulse', totalLoss > 3000);
               if (totalLoss === 0 && selectedDate) {
                 confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-                // --- Lazy render charts ---
+              }
+                              // --- Lazy render charts ---
 
 setTimeout(() => {
   if (issueChart) issueChart.destroy();
