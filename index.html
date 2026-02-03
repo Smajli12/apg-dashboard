@@ -257,7 +257,7 @@ setTimeout(() => {
               document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
               document.getElementById('loadingIndicator')?.remove();
               document.getElementById('dashboardContent').classList.remove('opacity-0', 'pointer-events-none');
-            })
+            });
 
             dateInput.addEventListener('change', () => updateDashboard(allRows, dateInput.value, clientFilter.value));
             clientFilter.addEventListener('change', () => updateDashboard(allRows, dateInput.value, clientFilter.value));
