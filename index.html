@@ -239,7 +239,7 @@
               });
 
               document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
-              document.getElementById('loadingIndicator').classList.add('hidden');
+              document.getElementById('loadingIndicator')?.remove();
               
             }
 
