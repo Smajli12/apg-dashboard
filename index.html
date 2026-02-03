@@ -5,135 +5,170 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AdPulse Guard Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Inter', 'sans-serif']
-            },
-            colors: {
-              darkcard: '#2a2a3b',
-              darkbg: '#1e1e2f'
-            }
-          }
-        }
-      };
-    </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   </head>
-  <body class="bg-gray-50 dark:bg-darkbg text-gray-900 dark:text-white font-sans transition-colors duration-300 min-h-screen">
-    <div id="loadingIndicator" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white dark:bg-darkbg text-gray-500 dark:text-gray-400 text-sm">
-      <svg class="animate-spin h-6 w-6 text-blue-500 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-      </svg>
-      <span>Loading dashboard data…</span>
+  <body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white font-sans">
+    <div id="loadingIndicator" class="fixed inset-0 z-50 flex items-center justify-center bg-white dark:bg-gray-900">
+      <div class="text-center">
+        <svg class="animate-spin h-6 w-6 text-blue-500 mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        </svg>
+        <p class="text-sm">Loading dashboard data…</p>
+      </div>
     </div>
 
-    <div id="dashboardContent" class="max-w-6xl mx-auto py-8 px-4 opacity-0 pointer-events-none transition-opacity duration-500">
-      <!-- DASHBOARD LAYOUT (unchanged) -->
-      <!-- ... -->
+    <div id="dashboardContent" class="max-w-6xl mx-auto p-4 opacity-0 pointer-events-none transition-opacity duration-500">
+      <h1 id="dashboardTitle" class="text-2xl font-bold text-center mb-4">AdPulse Guard – Overall Summary</h1>
+      <div id="topOffenderBox" class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6 hidden">
+        <h2 class="font-semibold mb-2">Top Offender Slot</h2>
+        <p><strong>Slot:</strong> <span id="offenderSlot"></span></p>
+        <p><strong>Loss:</strong> <span id="offenderLoss"></span></p>
+        <p><strong>Page:</strong> <span id="offenderPage"></span></p>
+        <p><strong>Issue:</strong> <span id="offenderIssue"></span></p>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 text-center">
+          <p class="text-lg font-semibold" id="issueCount">0</p>
+          <p class="text-sm">Issue Types</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 text-center">
+          <p class="text-lg font-semibold" id="slotCount">0</p>
+          <p class="text-sm">Total Slots</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 text-center">
+          <p class="text-lg font-semibold text-red-600 animate-pulse" id="dailyLoss">$0.00</p>
+          <p class="text-sm">Daily Loss</p>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+          <canvas id="issueChart"></canvas>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+          <canvas id="severityChart"></canvas>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 col-span-2">
+          <canvas id="lossTrendChart"></canvas>
+        </div>
+      </div>
+      <p class="text-xs text-gray-400 text-right mt-6">Last updated: <span id="lastUpdated">loading...</span></p>
     </div>
 
     <script>
-      window.addEventListener('DOMContentLoaded', () => {
-        const SHEET_URL = 'https://script.google.com/macros/s/AKfycbx-PFUcYyEXUR7Thw8kqzAWpCX74XY-4c-Si9myS69jloI9Vir_5YaZLXGCUiUquxMn/exec';
-        const labelMap = {
-          gpt_not_loaded: 'GPT not loaded',
-          wrong_network: 'Wrong network configuration',
-          slot_not_registered: 'DOM slot not in GPT',
-          defined_without_dom: 'GPT slot without DOM',
-          unexpected_size: 'Unexpected ad size',
-          empty_response: 'Empty ad response'
-        };
+      const SHEET_URL = 'https://script.google.com/macros/s/AKfycbx-PFUcYyEXUR7Thw8kqzAWpCX74XY-4c-Si9myS69jloI9Vir_5YaZLXGCUiUquxMn/exec';
+      const labelMap = {
+        gpt_not_loaded: 'GPT not loaded',
+        wrong_network: 'Wrong network configuration',
+        slot_not_registered: 'DOM slot not in GPT',
+        defined_without_dom: 'GPT slot without DOM',
+        unexpected_size: 'Unexpected ad size',
+        empty_response: 'Empty ad response'
+      };
 
-        let issueChart, severityChart, lossTrendChart;
+      let issueChart, severityChart, lossTrendChart;
 
-        fetch(SHEET_URL)
-          .then(res => res.json())
-          .then(json => {
-            const allRows = json.data || [];
+      fetch(SHEET_URL)
+        .then(res => res.json())
+        .then(json => {
+          const allRows = json.data || [];
+          updateDashboard(allRows);
+        });
 
-            function updateDashboard(rows, selectedDate = null, selectedClient = '') {
-              const issueTypes = {}, severities = {}, dailyTotals = {};
-              let totalSlots = 0, totalLoss = 0;
-              let topSlot = null, topLoss = 0;
+      function updateDashboard(rows) {
+        const issueTypes = {}, severities = {}, dailyTotals = {};
+        let totalSlots = 0, totalLoss = 0;
+        let topSlot = null, topLoss = 0;
 
-              rows.forEach(row => {
-                const dateKey = new Date(row.receivedAt).toISOString().split('T')[0];
-                if (selectedDate && dateKey !== selectedDate) return;
-                if (selectedClient && row.clientId !== selectedClient) return;
+        rows.forEach(row => {
+          const dateKey = new Date(row.receivedAt).toISOString().split('T')[0];
+          const rawType = row.issueType?.trim() || 'unknown_issue';
+          const label = labelMap[rawType] || rawType;
+          const severity = row.severity?.trim().toLowerCase() || 'unknown';
+          const loss = parseFloat(row.estimatedDailyRevenueRisk) || 0;
 
-                const rawType = row.issueType?.trim() || 'unknown_issue';
-                const label = labelMap[rawType] || rawType;
-                const severity = row.severity?.trim().toLowerCase() || 'unknown';
-                const loss = parseFloat(row.estimatedDailyRevenueRisk) || 0;
+          issueTypes[label] = (issueTypes[label] || 0) + 1;
+          severities[severity] = (severities[severity] || 0) + 1;
+          dailyTotals[dateKey] = (dailyTotals[dateKey] || 0) + loss;
 
-                issueTypes[label] = (issueTypes[label] || 0) + 1;
-                severities[severity] = (severities[severity] || 0) + 1;
-                dailyTotals[dateKey] = (dailyTotals[dateKey] || 0) + loss;
+          totalSlots++;
+          totalLoss += loss;
 
-                totalSlots++;
-                totalLoss += loss;
+          if (loss > topLoss) {
+            topLoss = loss;
+            topSlot = row;
+          }
+        });
 
-                if (loss > topLoss) {
-                  topLoss = loss;
-                  topSlot = row;
-                }
-              });
+        document.getElementById('dashboardTitle').textContent = 'AdPulse Guard – Overall Summary';
+        document.getElementById('issueCount').textContent = Object.keys(issueTypes).length;
+        document.getElementById('slotCount').textContent = totalSlots;
 
-              // Update DOM elements (as before)
-              // Destroy and recreate charts here (no lazy loading)
+        const lossElem = document.getElementById('dailyLoss');
+        lossElem.textContent = `$${totalLoss.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+        lossElem.classList.toggle('text-red-600', totalLoss > 3000);
+        lossElem.classList.toggle('animate-pulse', totalLoss > 3000);
 
-              if (issueChart) issueChart.destroy();
-              issueChart = new Chart(document.getElementById('issueChart'), {
-                type: 'bar',
-                data: {
-                  labels: Object.keys(issueTypes),
-                  datasets: [{ label: 'Issue Count', data: Object.values(issueTypes), backgroundColor: '#3b82f6' }]
-                },
-                options: { responsive: true, maintainAspectRatio: false }
-              });
+        if (totalLoss === 0) {
+          confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        }
 
-              if (severityChart) severityChart.destroy();
-              severityChart = new Chart(document.getElementById('severityChart'), {
-                type: 'pie',
-                data: {
-                  labels: Object.keys(severities),
-                  datasets: [{
-                    data: Object.values(severities),
-                    backgroundColor: Object.keys(severities).map(sev => sev === 'high' ? '#dc2626' : sev === 'medium' ? '#f59e0b' : '#16a34a')
-                  }]
-                },
-                options: { responsive: true, maintainAspectRatio: false }
-              });
+        const box = document.getElementById('topOffenderBox');
+        if (topSlot) {
+          box.classList.remove('hidden');
+          document.getElementById('offenderSlot').textContent = topSlot.slotId;
+          document.getElementById('offenderLoss').textContent = `$${topLoss.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+          document.getElementById('offenderPage').textContent = topSlot.pageUrl;
+          document.getElementById('offenderIssue').textContent = labelMap[topSlot.issueType] || topSlot.issueType;
+        } else {
+          box.classList.add('hidden');
+        }
 
-              if (lossTrendChart) lossTrendChart.destroy();
-              lossTrendChart = new Chart(document.getElementById('lossTrendChart'), {
-                type: 'line',
-                data: {
-                  labels: Object.keys(dailyTotals).sort(),
-                  datasets: [{
-                    label: 'Daily Loss ($)',
-                    data: Object.keys(dailyTotals).sort().map(d => dailyTotals[d]),
-                    borderColor: '#3b82f6',
-                    tension: 0.3
-                  }]
-                },
-                options: { responsive: true, maintainAspectRatio: true }
-              });
+        if (issueChart) issueChart.destroy();
+        issueChart = new Chart(document.getElementById('issueChart'), {
+          type: 'bar',
+          data: {
+            labels: Object.keys(issueTypes),
+            datasets: [{ label: 'Issue Count', data: Object.values(issueTypes), backgroundColor: '#3b82f6' }]
+          },
+          options: { responsive: true, maintainAspectRatio: false }
+        });
 
-              document.getElementById('loadingIndicator')?.remove();
-              document.getElementById('dashboardContent').classList.remove('opacity-0', 'pointer-events-none');
-            }
+        if (severityChart) severityChart.destroy();
+        severityChart = new Chart(document.getElementById('severityChart'), {
+          type: 'pie',
+          data: {
+            labels: Object.keys(severities),
+            datasets: [{
+              data: Object.values(severities),
+              backgroundColor: Object.keys(severities).map(sev =>
+                sev === 'high' ? '#dc2626' : sev === 'medium' ? '#f59e0b' : '#16a34a')
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false }
+        });
 
-            updateDashboard(allRows);
-          });
-      });
+        if (lossTrendChart) lossTrendChart.destroy();
+        lossTrendChart = new Chart(document.getElementById('lossTrendChart'), {
+          type: 'line',
+          data: {
+            labels: Object.keys(dailyTotals).sort(),
+            datasets: [{
+              label: 'Daily Loss ($)',
+              data: Object.keys(dailyTotals).sort().map(d => dailyTotals[d]),
+              borderColor: '#3b82f6',
+              tension: 0.3
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: true }
+        });
+
+        document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
+        document.getElementById('loadingIndicator')?.remove();
+        document.getElementById('dashboardContent').classList.remove('opacity-0', 'pointer-events-none');
+      }
     </script>
   </body>
 </html>
