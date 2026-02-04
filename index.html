@@ -169,18 +169,23 @@ function renderDashboard(rows, selectedDate = null, selectedClient = '') {
     totalLoss += loss;
 
     const offenderKey = r.slotId;
-    if (!offenderMap[offenderKey]) {
-      offenderMap[offenderKey] = {
-        slotId: r.slotId,
-        issues: new Set(),
-        totalLoss: 0,
-        pages: new Set()
-      };
-    }
 
-    offenderMap[offenderKey].totalLoss += loss;
-    offenderMap[offenderKey].issues.add(r.issueType);
-    offenderMap[offenderKey].pages.add(r.pageUrl);
+if (!offenderMap[offenderKey]) {
+  offenderMap[offenderKey] = {
+    slotId: r.slotId,
+    issues: new Set(),
+    pages: new Map() // pageUrl → loss
+  };
+}
+
+// issues (unique)
+offenderMap[offenderKey].issues.add(r.issueType);
+
+// pages (dedupe po page)
+if (!offenderMap[offenderKey].pages.has(r.pageUrl)) {
+  offenderMap[offenderKey].pages.set(r.pageUrl, loss);
+}
+
   });
 
   /* === TOP OFFENDER CALCULATION === */
@@ -188,10 +193,13 @@ function renderDashboard(rows, selectedDate = null, selectedClient = '') {
   let topLoss = 0;
 
   Object.values(offenderMap).forEach(o => {
-    if (o.totalLoss > topLoss) {
-      topLoss = o.totalLoss;
-      topSlot = o;
-    }
+    const slotLoss = Array.from(o.pages.values())
+  .reduce((a, b) => a + b, 0);
+
+if (slotLoss > topLoss) {
+  topLoss = slotLoss;
+  topSlot = o;
+}
   });
 // === KPI COUNTERS ===
 document.getElementById('issueCount').textContent =
@@ -222,7 +230,7 @@ if (
     document.getElementById('offenderLoss').textContent =
       `$${topLoss.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
-    const pages = Array.from(topSlot.pages);
+    const pages = Array.from(topSlot.pages.keys());
 
 const maxVisible = 3;
 const visiblePages = pages.slice(0, maxVisible);
