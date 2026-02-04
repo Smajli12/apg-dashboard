@@ -250,7 +250,15 @@ document.getElementById('offenderPage').innerHTML = `
   .map(i => labelMap[i] || i)
   .join(', ');
 
-document.getElementById('offenderIssue').textContent = issueList;
+document.getElementById('offenderIssue').innerHTML =
+  Array.from(topSlot.issues)
+    .map(i => `
+      <span class="inline-block bg-gray-100 dark:bg-gray-700
+                   text-xs px-2 py-0.5 rounded mr-1">
+        ${labelMap[i] || i}
+      </span>
+    `)
+    .join('');
   } else {
     box.classList.add('hidden');
   }
