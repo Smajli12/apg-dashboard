@@ -172,13 +172,14 @@ function renderDashboard(rows, selectedDate = null, selectedClient = '') {
     if (!offenderMap[offenderKey]) {
       offenderMap[offenderKey] = {
         slotId: r.slotId,
-        issueType: r.issueType,
+        issues: new Set(),
         totalLoss: 0,
         pages: new Set()
       };
     }
 
     offenderMap[offenderKey].totalLoss += loss;
+    offenderMap[offenderKey].issues.add(r.issueType);
     offenderMap[offenderKey].pages.add(r.pageUrl);
   });
 
@@ -222,13 +223,34 @@ if (
       `$${topLoss.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
     const pages = Array.from(topSlot.pages);
-    document.getElementById('offenderPage').innerHTML =
-      pages.length === 1
-        ? `<a href="${pages[0]}" target="_blank" class="text-blue-600 underline break-all">${pages[0]}</a>`
-        : `<span class="text-gray-500">${pages.length} pages affected</span>`;
 
-    document.getElementById('offenderIssue').textContent =
-      labelMap[topSlot.issueType] || topSlot.issueType;
+const maxVisible = 3;
+const visiblePages = pages.slice(0, maxVisible);
+const remaining = pages.length - maxVisible;
+
+document.getElementById('offenderPage').innerHTML = `
+  <ul class="list-disc list-inside space-y-1">
+    ${visiblePages.map(p =>
+      `<li>
+        <a href="${p}" target="_blank"
+           class="text-blue-600 underline break-all">
+          ${p}
+        </a>
+      </li>`
+    ).join('')}
+    ${
+      remaining > 0
+        ? `<li class="text-gray-500 italic">and ${remaining} more…</li>`
+        : ''
+    }
+  </ul>
+`;
+
+    const issueList = Array.from(topSlot.issues)
+  .map(i => labelMap[i] || i)
+  .join(', ');
+
+document.getElementById('offenderIssue').textContent = issueList;
   } else {
     box.classList.add('hidden');
   }
