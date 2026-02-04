@@ -148,7 +148,7 @@ function renderDashboard(rows, selectedDate = null, selectedClient = '') {
   let topSlot = null, topLoss = 0;
 
   rows.forEach(r => {
-  if (!r.issueType || !r.receivedAt) return;
+  if (!r || !r.issueType || !r.receivedAt) return;
 
     const dateKey = r.receivedAt.split('T')[0];
     if (selectedDate && dateKey !== selectedDate) return;
