@@ -195,44 +195,47 @@ function renderDashboard(rows, selectedDate = null, selectedClient = '') {
   }
 
   if (issueChart) issueChart.destroy();
-  issueChart = new Chart(issueChartEl, {
-    type: 'bar',
-    data: { labels: Object.keys(issueTypes), datasets: [{ data: Object.values(issueTypes), backgroundColor: '#3b82f6' }] },
-    options: {
-  maintainAspectRatio: false,
-  plugins: {
-    legend: { display: false },
-    datalabels: {
-      color: '#ffffff',
-      anchor: 'center',
-      align: 'center',
-      font: {
-        weight: 'bold',
-        size: 12
-      }
-    }
+issueChart = new Chart(issueChartEl, {
+  type: 'bar',
+  data: {
+    labels: Object.keys(issueTypes),
+    datasets: [{
+      data: Object.values(issueTypes),
+      backgroundColor: '#3b82f6'
+    }]
   },
-  scales: {
-  x: {
-    ticks: {
-      color: '#9ca3af'
-    }
-  },
-  y: {
-    beginAtZero: true,
-    ticks: {
-      color: '#9ca3af',   // isti sivi kao ostali tekst
-      font: {
-        size: 11
+  options: {
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      datalabels: {
+        color: '#ffffff',
+        anchor: 'center',
+        align: 'center',
+        font: {
+          weight: 'bold',
+          size: 12
+        }
       }
     },
-    grid: {
-      color: 'rgba(156,163,175,0.2)'
+    scales: {
+      x: {
+        ticks: { color: '#9ca3af' }
+      },
+      y: {
+        beginAtZero: true,
+        ticks: {
+          color: '#9ca3af',
+          font: { size: 11 }
+        },
+        grid: {
+          color: 'rgba(156,163,175,0.2)'
+        }
+      }
     }
   }
-}
 });
-  ;
+
   if (severityChart) severityChart.destroy();
 severityChart = new Chart(severityChartEl, {
   type: 'pie',
