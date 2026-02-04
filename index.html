@@ -194,7 +194,7 @@ function renderDashboard(rows, selectedDate = null, selectedClient = '') {
     box.classList.add('hidden');
   }
 
-  issueChart?.destroy();
+  if (issueChart) issueChart.destroy();
   issueChart = new Chart(issueChartEl, {
     type: 'bar',
     data: { labels: Object.keys(issueTypes), datasets: [{ data: Object.values(issueTypes), backgroundColor: '#3b82f6' }] },
@@ -233,7 +233,7 @@ function renderDashboard(rows, selectedDate = null, selectedClient = '') {
 }
 });
   ;
-  severityChart?.destroy();
+  if (severityChart) severityChart.destroy();
 severityChart = new Chart(severityChartEl, {
   type: 'pie',
   data: {
@@ -263,7 +263,7 @@ severityChart = new Chart(severityChartEl, {
     }
   }
 });
-  lossTrendChart?.destroy();
+  if (lossTrendChart) lossTrendChart.destroy();
   const sortedDates = Object.keys(dailyTotals).sort();
 
 lossTrendChart = new Chart(lossTrendChartEl, {
