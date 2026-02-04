@@ -144,6 +144,7 @@ const clientFilter = document.getElementById('clientFilter');
 const clearDate = document.getElementById('clearDate');
 
 function renderDashboard(rows, selectedDate = null, selectedClient = '') {
+  const budgetMap = new Map(); 
   const issueTypes = {}, severities = {}, dailyTotals = {};
   let totalSlots = 0, totalLoss = 0;
   const offenderMap = {};
@@ -166,7 +167,11 @@ function renderDashboard(rows, selectedDate = null, selectedClient = '') {
     dailyTotals[dateKey] = (dailyTotals[dateKey] || 0) + loss;
 
     totalSlots++;
-    totalLoss += loss;
+    const budgetKey = `${r.slotId}__${r.pageUrl}`;
+
+if (!budgetMap.has(budgetKey)) {
+  budgetMap.set(budgetKey, loss);
+}
 
     const offenderKey = r.slotId;
 
@@ -189,6 +194,8 @@ if (!offenderMap[offenderKey].pages.has(r.pageUrl)) {
   });
 
   /* === TOP OFFENDER CALCULATION === */
+  const dedupedTotalLoss = Array.from(budgetMap.values())
+  .reduce((a, b) => a + b, 0);
   let topSlot = null;
   let topLoss = 0;
 
@@ -208,7 +215,7 @@ document.getElementById('issueCount').textContent =
 document.getElementById('slotCount').textContent = totalSlots;
 
 document.getElementById('dailyLoss').textContent =
-  `$${totalLoss.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+  `$${dedupedTotalLoss.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
 // 🎉 CONFETTI: samo DAILY view + ZERO issues
 if (
@@ -253,10 +260,6 @@ document.getElementById('offenderPage').innerHTML = `
     }
   </ul>
 `;
-
-    const issueList = Array.from(topSlot.issues)
-  .map(i => labelMap[i] || i)
-  .join(', ');
 
 document.getElementById('offenderIssue').innerHTML =
   Array.from(topSlot.issues)
