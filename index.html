@@ -97,6 +97,9 @@ const CACHE_KEY = 'apg_dashboard_cache';
 const CACHE_TTL = 5 * 60 * 1000; // 5 min
 
 let issueChart, severityChart, lossTrendChart;
+  const issueChartEl = document.getElementById('issueChart');
+const severityChartEl = document.getElementById('severityChart');
+const lossTrendChartEl = document.getElementById('lossTrendChart');
 
 function renderDashboard(rows) {
   const issueTypes = {}, severities = {}, dailyTotals = {};
@@ -153,6 +156,10 @@ fetch(SHEET_URL)
     const rows = j.data || [];
     localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: rows }));
     renderDashboard(rows);
+  })
+  .catch(err => {
+    console.error('Dashboard load failed', err);
+    document.getElementById('loadingIndicator').style.display = 'none';
   });
 </script>
 
