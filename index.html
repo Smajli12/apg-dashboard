@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Monitoring Alert Dashboard</title>
 
-  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -29,21 +28,21 @@
 
 <body class="bg-gray-50 dark:bg-darkbg text-gray-900 dark:text-white font-sans min-h-screen">
 
-<!-- LOADING OVERLAY (ne blokira UI) -->
-<div id="loadingIndicator" class="fixed inset-0 z-40 flex items-center justify-center bg-white/70 dark:bg-darkbg/70 text-gray-500 text-sm">
+<!-- LOADER -->
+<div id="loadingIndicator" class="fixed inset-0 z-50 flex items-center justify-center bg-white/70 dark:bg-darkbg/70 text-sm text-gray-500">
   <div class="flex flex-col items-center">
     <svg class="animate-spin h-6 w-6 text-blue-500 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
     </svg>
-    Loading data…
+    Loading dashboard…
   </div>
 </div>
 
-<div id="dashboardContent" class="max-w-6xl mx-auto py-8 px-4 transition-opacity duration-300">
+<div id="dashboardContent" class="max-w-6xl mx-auto py-8 px-4">
 
   <!-- HEADER -->
-  <div class="flex justify-between mb-6 items-center gap-4 flex-wrap">
+  <div class="flex flex-wrap justify-between gap-4 mb-6">
     <h1 id="dashboardTitle" class="text-4xl font-extrabold tracking-tight">
       Monitoring Alert – Overall Summary
     </h1>
@@ -54,21 +53,33 @@
         <option value="">All Clients</option>
       </select>
       <button id="clearDate" class="text-blue-600 hover:underline">Clear</button>
+      <button id="darkModeBtn" class="ml-2 px-3 py-1 rounded bg-gray-200 dark:bg-gray-700">
+        <span id="modeLabel">Dark Mode</span>
+      </button>
     </div>
+  </div>
+
+  <!-- TOP OFFENDER -->
+  <div id="topOffenderBox" class="hidden bg-white dark:bg-darkcard rounded-xl shadow p-6 mb-6">
+    <h2 class="text-lg font-semibold mb-2">🚨 Top Offender Slot</h2>
+    <p><strong>Slot:</strong> <span id="offenderSlot"></span></p>
+    <p><strong>Loss:</strong> <span id="offenderLoss"></span></p>
+    <p><strong>Page:</strong> <span id="offenderPage"></span></p>
+    <p><strong>Issue:</strong> <span id="offenderIssue"></span></p>
   </div>
 
   <!-- KPI -->
   <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
     <div class="bg-white dark:bg-darkcard rounded-xl shadow p-6 text-center">
-      <div class="text-3xl font-bold" id="issueCount">—</div>
+      <div id="issueCount" class="text-3xl font-bold">—</div>
       <div class="text-sm text-gray-500">Issue Types</div>
     </div>
     <div class="bg-white dark:bg-darkcard rounded-xl shadow p-6 text-center">
-      <div class="text-3xl font-bold" id="slotCount">—</div>
+      <div id="slotCount" class="text-3xl font-bold">—</div>
       <div class="text-sm text-gray-500">Total Slots</div>
     </div>
     <div class="bg-white dark:bg-darkcard rounded-xl shadow p-6 text-center">
-      <div class="text-3xl font-bold text-red-600" id="dailyLoss">$—</div>
+      <div id="dailyLoss" class="text-3xl font-bold text-red-600">$—</div>
       <div class="text-sm text-gray-500">Daily Loss</div>
     </div>
   </div>
@@ -93,46 +104,93 @@
 
 <script>
 const SHEET_URL = 'https://script.google.com/macros/s/AKfycbx-PFUcYyEXUR7Thw8kqzAWpCX74XY-4c-Si9myS69jloI9Vir_5YaZLXGCUiUquxMn/exec';
-const CACHE_KEY = 'apg_dashboard_cache';
-const CACHE_TTL = 5 * 60 * 1000; // 5 min
+const CACHE_KEY = 'apg_cache';
+const CACHE_TTL = 5 * 60 * 1000;
+
+const labelMap = {
+  gpt_not_loaded: 'GPT not loaded',
+  wrong_network: 'Wrong network',
+  slot_not_registered: 'DOM slot not in GPT',
+  defined_without_dom: 'GPT slot without DOM',
+  unexpected_size: 'Unexpected size',
+  empty_response: 'Empty response'
+};
 
 let issueChart, severityChart, lossTrendChart;
-  const issueChartEl = document.getElementById('issueChart');
+let allRows = [];
+
+const issueChartEl = document.getElementById('issueChart');
 const severityChartEl = document.getElementById('severityChart');
 const lossTrendChartEl = document.getElementById('lossTrendChart');
 
-function renderDashboard(rows) {
+const dateInput = document.getElementById('dateFilter');
+const clientFilter = document.getElementById('clientFilter');
+const clearDate = document.getElementById('clearDate');
+
+function renderDashboard(rows, selectedDate = null, selectedClient = '') {
   const issueTypes = {}, severities = {}, dailyTotals = {};
   let totalSlots = 0, totalLoss = 0;
+  let topSlot = null, topLoss = 0;
 
   rows.forEach(r => {
-    issueTypes[r.issueType] = (issueTypes[r.issueType] || 0) + 1;
-    severities[r.severity] = (severities[r.severity] || 0) + 1;
-    const d = r.receivedAt.split('T')[0];
-    dailyTotals[d] = (dailyTotals[d] || 0) + (+r.estimatedDailyRevenueRisk || 0);
+    const dateKey = r.receivedAt.split('T')[0];
+    if (selectedDate && dateKey !== selectedDate) return;
+    if (selectedClient && r.clientId !== selectedClient) return;
+
+    const loss = Number(r.estimatedDailyRevenueRisk) || 0;
+    const type = labelMap[r.issueType] || r.issueType;
+    const sev = r.severity || 'unknown';
+
+    issueTypes[type] = (issueTypes[type] || 0) + 1;
+    severities[sev] = (severities[sev] || 0) + 1;
+    dailyTotals[dateKey] = (dailyTotals[dateKey] || 0) + loss;
+
     totalSlots++;
-    totalLoss += (+r.estimatedDailyRevenueRisk || 0);
+    totalLoss += loss;
+
+    if (loss > topLoss) {
+      topLoss = loss;
+      topSlot = r;
+    }
   });
 
   document.getElementById('issueCount').textContent = Object.keys(issueTypes).length;
   document.getElementById('slotCount').textContent = totalSlots;
-  document.getElementById('dailyLoss').textContent = `$${totalLoss.toFixed(2)}`;
+  document.getElementById('dailyLoss').textContent =
+    `$${totalLoss.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
-  if (issueChart) issueChart.destroy();
+  if (Object.keys(issueTypes).length === 0 && selectedDate) {
+    confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
+  }
+
+  const box = document.getElementById('topOffenderBox');
+  if (topSlot) {
+    box.classList.remove('hidden');
+    document.getElementById('offenderSlot').textContent = topSlot.slotId;
+    document.getElementById('offenderLoss').textContent =
+      `$${topLoss.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+    document.getElementById('offenderPage').textContent = topSlot.pageUrl;
+    document.getElementById('offenderIssue').textContent =
+      labelMap[topSlot.issueType] || topSlot.issueType;
+  } else {
+    box.classList.add('hidden');
+  }
+
+  issueChart?.destroy();
   issueChart = new Chart(issueChartEl, {
     type: 'bar',
     data: { labels: Object.keys(issueTypes), datasets: [{ data: Object.values(issueTypes), backgroundColor: '#3b82f6' }] },
     options: { maintainAspectRatio: false }
   });
 
-  if (severityChart) severityChart.destroy();
+  severityChart?.destroy();
   severityChart = new Chart(severityChartEl, {
     type: 'pie',
-    data: { labels: Object.keys(severities), datasets: [{ data: Object.values(severities), backgroundColor: ['#dc2626','#f59e0b','#3b82f6'] }] },
+    data: { labels: Object.keys(severities), datasets: [{ data: Object.values(severities), backgroundColor: ['#dc2626','#f59e0b','#16a34a'] }] },
     options: { maintainAspectRatio: false }
   });
 
-  if (lossTrendChart) lossTrendChart.destroy();
+  lossTrendChart?.destroy();
   lossTrendChart = new Chart(lossTrendChartEl, {
     type: 'line',
     data: { labels: Object.keys(dailyTotals), datasets: [{ data: Object.values(dailyTotals), borderColor: '#3b82f6', tension: 0.3 }] },
@@ -143,24 +201,43 @@ function renderDashboard(rows) {
   document.getElementById('loadingIndicator').style.display = 'none';
 }
 
-// FAST PATH: cache
+// DARK MODE
+const darkModeBtn = document.getElementById('darkModeBtn');
+const modeLabel = document.getElementById('modeLabel');
+if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark');
+modeLabel.textContent = document.documentElement.classList.contains('dark') ? 'Light Mode' : 'Dark Mode';
+darkModeBtn.addEventListener('click', () => {
+  const isDark = document.documentElement.classList.toggle('dark');
+  localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  modeLabel.textContent = isDark ? 'Light Mode' : 'Dark Mode';
+});
+
+// CACHE FAST PATH
 const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
 if (cached && Date.now() - cached.ts < CACHE_TTL) {
-  renderDashboard(cached.data);
+  allRows = cached.data;
+  renderDashboard(allRows);
 }
 
-// ALWAYS refresh in background
+// FETCH
 fetch(SHEET_URL)
   .then(r => r.json())
   .then(j => {
-    const rows = j.data || [];
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: rows }));
-    renderDashboard(rows);
+    allRows = j.data || [];
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: allRows }));
+    renderDashboard(allRows, dateInput.value, clientFilter.value);
   })
-  .catch(err => {
-    console.error('Dashboard load failed', err);
+  .catch(() => {
     document.getElementById('loadingIndicator').style.display = 'none';
   });
+
+// FILTERS
+dateInput.addEventListener('change', () => renderDashboard(allRows, dateInput.value, clientFilter.value));
+clientFilter.addEventListener('change', () => renderDashboard(allRows, dateInput.value, clientFilter.value));
+clearDate.addEventListener('click', () => {
+  dateInput.value = '';
+  renderDashboard(allRows, null, clientFilter.value);
+});
 </script>
 
 </body>
