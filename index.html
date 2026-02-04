@@ -65,7 +65,7 @@
 
   <!-- TOP OFFENDER -->
   <div id="topOffenderBox" class="hidden bg-white dark:bg-darkcard rounded-xl shadow p-6 mb-6">
-    <h2 class="text-sm font-semibold uppercase tracking-wide mb-3">Top Offender Slot</h2>
+    <h2 class="text-lg font-semibold mb-2">🚨 Top Offender Slot</h2>
     <p><strong>Slot:</strong> <span id="offenderSlot"></span></p>
     <p><strong>Loss:</strong> <span id="offenderLoss"></span></p>
     <p><strong>Page:</strong> <span id="offenderPage"></span></p>
@@ -198,8 +198,25 @@ function renderDashboard(rows, selectedDate = null, selectedClient = '') {
   issueChart = new Chart(issueChartEl, {
     type: 'bar',
     data: { labels: Object.keys(issueTypes), datasets: [{ data: Object.values(issueTypes), backgroundColor: '#3b82f6' }] },
-    options: { maintainAspectRatio: false }
-  });
+    options: {
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { display: false },
+    datalabels: {
+      color: '#ffffff',
+      anchor: 'center',
+      align: 'center',
+      font: {
+        weight: 'bold',
+        size: 12
+      }
+    }
+  },
+  scales: {
+    x: { ticks: { color: '#9ca3af' } },
+    y: { ticks: { display: false } }
+  }
+}
 
   severityChart?.destroy();
   severityChart = new Chart(severityChartEl, {
@@ -227,12 +244,36 @@ function renderDashboard(rows, selectedDate = null, selectedClient = '') {
   });
 
   lossTrendChart?.destroy();
-  lossTrendChart = new Chart(lossTrendChartEl, {
-    type: 'line',
-    data: { labels: Object.keys(dailyTotals), datasets: [{ data: Object.values(dailyTotals), borderColor: '#3b82f6', tension: 0.3 }] },
-    options: { maintainAspectRatio: false }
-  });
+  const sortedDates = Object.keys(dailyTotals).sort();
 
+lossTrendChart = new Chart(lossTrendChartEl, {
+  type: 'line',
+  data: {
+    labels: sortedDates,
+    datasets: [{
+      data: sortedDates.map(d => dailyTotals[d]),
+      borderColor: '#3b82f6',
+      backgroundColor: 'rgba(59,130,246,0.08)',
+      fill: true,
+      tension: 0.3,
+      pointRadius: 4
+    }]
+  },
+  options: {
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      datalabels: {
+        align: 'top',
+        anchor: 'end',
+        offset: 6,
+        color: '#111827',
+        font: { size: 11, weight: '600' },
+        formatter: v => `$${v.toLocaleString()}`
+      }
+    }
+  }
+});
   document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
   document.getElementById('loadingIndicator').style.display = 'none';
 }
