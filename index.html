@@ -463,7 +463,13 @@ fetch(`${SHEET_URL}?token=${token}`)
     updateViewModeLabel(dateInput.value);
     renderDashboard(allRows, dateInput.value);
   })
-  .catch(() => {
+  .catch((error) => {
+    console.error('Error fetching data:', error);
+    // Ako dođe do greške, loading indikator se skriva
+    document.getElementById('loadingIndicator').style.display = 'none';
+  })
+  .finally(() => {
+    // Sigurno sakrivanje loading indikatora nakon završenog procesa (uspešno ili sa greškom)
     document.getElementById('loadingIndicator').style.display = 'none';
   });
 
