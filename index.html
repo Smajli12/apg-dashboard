@@ -47,14 +47,31 @@
       Monitoring Alert
     </h1>
 
-    <div class="flex items-center gap-2 text-xs">
-      <input type="date" id="dateFilter" class="px-2 py-1 border rounded dark:bg-darkcard">
-      <span class="text-gray-400">to</span>
-      <button id="clearDate" class="text-blue-600 hover:underline">Clear</button>
-      <button id="darkModeBtn" class="ml-2 px-3 py-1 rounded bg-gray-200 dark:bg-gray-700">
-        <span id="modeLabel">Dark Mode</span>
-      </button>
-    </div>
+    <div class="flex items-center gap-3 text-xs">
+
+  <!-- VIEW MODE LABEL -->
+  <span
+    id="viewModeLabel"
+    class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 uppercase tracking-wide"
+  >
+    Summary view
+  </span>
+
+  <!-- DATE FILTER -->
+  <div class="flex items-center gap-2">
+    <input
+      type="date"
+      id="dateFilter"
+      class="px-2 py-1 border rounded dark:bg-darkcard"
+    >
+    <span class="text-gray-400">to</span>
+    <button id="clearDate" class="text-blue-600 hover:underline">Clear</button>
+  </div>
+
+  <button id="darkModeBtn" class="ml-2 px-3 py-1 rounded bg-gray-200 dark:bg-gray-700">
+    <span id="modeLabel">Dark Mode</span>
+  </button>
+</div>
   </div>
 </header>
 
@@ -151,6 +168,16 @@ let allRows = [];
 
 const dateInput = document.getElementById('dateFilter');
 const clearDate = document.getElementById('clearDate');
+const viewModeLabel = document.getElementById('viewModeLabel');
+
+function updateViewModeLabel(selectedDate) {
+  if (selectedDate) {
+    viewModeLabel.textContent = 'Daily view';
+  } else {
+    viewModeLabel.textContent = 'Summary view';
+  }
+}
+
 
 function renderDashboard(rows, selectedDate = null, selectedClient = '') {
   const issueTypes = {};
@@ -423,6 +450,7 @@ darkModeBtn.addEventListener('click', () => {
 const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
 if (cached && Date.now() - cached.ts < CACHE_TTL) {
   allRows = cached.data;
+  updateViewModeLabel(null);
   renderDashboard(allRows);
 }
 
@@ -434,18 +462,21 @@ fetch(`${SHEET_URL}?token=${token}`)
       CACHE_KEY,
       JSON.stringify({ ts: Date.now(), data: allRows })
     );
+    updateViewModeLabel(dateInput.value);
     renderDashboard(allRows, dateInput.value);
   })
   .catch(() => {
     document.getElementById('loadingIndicator').style.display = 'none';
   });
 
-dateInput.addEventListener('change', () =>
-  renderDashboard(allRows, dateInput.value)
-);
+dateInput.addEventListener('change', () => {
+  updateViewModeLabel(dateInput.value);
+  renderDashboard(allRows, dateInput.value);
+});
 
 clearDate.addEventListener('click', () => {
   dateInput.value = '';
+  updateViewModeLabel(null);
   renderDashboard(allRows, null);
 });
 </script>
