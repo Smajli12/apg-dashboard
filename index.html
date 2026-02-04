@@ -113,7 +113,10 @@
 
 <script>
 Chart.register(ChartDataLabels);
-
+const issueChartEl = document.getElementById('issueChart');
+const severityChartEl = document.getElementById('severityChart');
+const lossTrendChartEl = document.getElementById('lossTrendChart');
+  
 const SHEET_URL = 'https://script.google.com/macros/s/AKfycbx-PFUcYyEXUR7Thw8kqzAWpCX74XY-4c-Si9myS69jloI9Vir_5YaZLXGCUiUquxMn/exec';
 const CACHE_KEY = 'apg_cache';
 const CACHE_TTL = 5 * 60 * 1000;
