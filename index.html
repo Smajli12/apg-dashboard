@@ -93,21 +93,22 @@
     <div class="bg-white dark:bg-darkcard rounded-xl shadow p-4">
       <h2 class="text-xs uppercase tracking-wide text-gray-500 mb-2">Issue Types</h2>
       <div class="h-64">
-  <canvas id="issueChart"></canvas>
-</div>
+        <canvas id="issueChart"></canvas>
+      </div>
     </div>
 
     <div class="bg-white dark:bg-darkcard rounded-xl shadow p-4">
       <h2 class="text-xs uppercase tracking-wide text-gray-500 mb-2">Severity Breakdown</h2>
       <div class="h-64">
-  <canvas id="severityChart"></canvas>
-</div>
+        <canvas id="severityChart"></canvas>
+      </div>
     </div>
 
     <div id="lossChartWrapper" class="bg-white dark:bg-darkcard rounded-xl shadow p-4 md:col-span-2">
       <h2 class="text-xs uppercase tracking-wide text-gray-500 mb-2">Daily Revenue Loss</h2>
       <div class="h-64">
-  <canvas id="lossTrendChart"></canvas>
+        <canvas id="lossTrendChart"></canvas>
+      </div>
     </div>
   </div>
 
@@ -121,7 +122,7 @@ Chart.register(ChartDataLabels);
 const issueChartEl = document.getElementById('issueChart');
 const severityChartEl = document.getElementById('severityChart');
 const lossTrendChartEl = document.getElementById('lossTrendChart');
-  
+
 const SHEET_URL = 'https://script.google.com/macros/s/AKfycbx-PFUcYyEXUR7Thw8kqzAWpCX74XY-4c-Si9myS69jloI9Vir_5YaZLXGCUiUquxMn/exec';
 const CACHE_KEY = 'apg_cache';
 const CACHE_TTL = 5 * 60 * 1000;
@@ -145,12 +146,12 @@ const clearDate = document.getElementById('clearDate');
 function renderDashboard(rows, selectedDate = null, selectedClient = '') {
   const issueTypes = {}, severities = {}, dailyTotals = {};
   let totalSlots = 0, totalLoss = 0;
-  let topSlot = null, topLoss = 0;
+  const offenderMap = {};
   const lossChartWrapper = document.getElementById('lossChartWrapper');
   const isSingleDayView = !!selectedDate;
 
   rows.forEach(r => {
-  if (!r || !r.issueType || !r.receivedAt) return;
+    if (!r || !r.issueType || !r.receivedAt) return;
 
     const dateKey = r.receivedAt.split('T')[0];
     if (selectedDate && dateKey !== selectedDate) return;
@@ -167,35 +168,70 @@ function renderDashboard(rows, selectedDate = null, selectedClient = '') {
     totalSlots++;
     totalLoss += loss;
 
-    if (loss > topLoss) {
-      topLoss = loss;
-      topSlot = r;
+    const offenderKey = `${r.slotId}__${r.issueType}`;
+    if (!offenderMap[offenderKey]) {
+      offenderMap[offenderKey] = {
+        slotId: r.slotId,
+        issueType: r.issueType,
+        totalLoss: 0,
+        pages: new Set()
+      };
     }
+
+    offenderMap[offenderKey].totalLoss += loss;
+    offenderMap[offenderKey].pages.add(r.pageUrl);
   });
 
-  document.getElementById('issueCount').textContent = Object.keys(issueTypes).length;
-  document.getElementById('slotCount').textContent = totalSlots;
-  document.getElementById('dailyLoss').textContent =
-    `$${totalLoss.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+  /* === TOP OFFENDER CALCULATION === */
+  let topSlot = null;
+  let topLoss = 0;
 
-  if (Object.keys(issueTypes).length === 0 && selectedDate) {
-    confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
-  }
+  Object.values(offenderMap).forEach(o => {
+    if (o.totalLoss > topLoss) {
+      topLoss = o.totalLoss;
+      topSlot = o;
+    }
+  });
+// === KPI COUNTERS ===
+document.getElementById('issueCount').textContent =
+  Object.keys(issueTypes).length;
 
+document.getElementById('slotCount').textContent = totalSlots;
+
+document.getElementById('dailyLoss').textContent =
+  `$${totalLoss.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+
+// 🎉 CONFETTI: samo DAILY view + ZERO issues
+if (
+  isSingleDayView &&
+  Object.keys(issueTypes).length === 0
+) {
+  confetti({
+    particleCount: 120,
+    spread: 70,
+    origin: { y: 0.6 }
+  });
+}
   const box = document.getElementById('topOffenderBox');
+
   if (topSlot) {
     box.classList.remove('hidden');
+
     document.getElementById('offenderSlot').textContent = topSlot.slotId;
     document.getElementById('offenderLoss').textContent =
       `$${topLoss.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+
+    const pages = Array.from(topSlot.pages);
     document.getElementById('offenderPage').innerHTML =
-      `<a href="${topSlot.pageUrl}" target="_blank" class="text-blue-600 underline break-all">${topSlot.pageUrl}</a>`;
+      pages.length === 1
+        ? `<a href="${pages[0]}" target="_blank" class="text-blue-600 underline break-all">${pages[0]}</a>`
+        : `<span class="text-gray-500">${pages.length} pages affected</span>`;
+
     document.getElementById('offenderIssue').textContent =
       labelMap[topSlot.issueType] || topSlot.issueType;
   } else {
     box.classList.add('hidden');
   }
-
   if (issueChart) issueChart.destroy();
 issueChart = new Chart(issueChartEl, {
   type: 'bar',
