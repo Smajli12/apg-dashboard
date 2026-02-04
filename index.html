@@ -104,7 +104,7 @@
 </div>
     </div>
 
-    <div class="bg-white dark:bg-darkcard rounded-xl shadow p-4 md:col-span-2">
+    <div id="lossChartWrapper" class="bg-white dark:bg-darkcard rounded-xl shadow p-4 md:col-span-2">
       <h2 class="text-xs uppercase tracking-wide text-gray-500 mb-2">Daily Revenue Loss</h2>
       <div class="h-64">
   <canvas id="lossTrendChart"></canvas>
@@ -146,6 +146,8 @@ function renderDashboard(rows, selectedDate = null, selectedClient = '') {
   const issueTypes = {}, severities = {}, dailyTotals = {};
   let totalSlots = 0, totalLoss = 0;
   let topSlot = null, topLoss = 0;
+  const lossChartWrapper = document.getElementById('lossChartWrapper');
+  const isSingleDayView = !!selectedDate;
 
   rows.forEach(r => {
   if (!r || !r.issueType || !r.receivedAt) return;
@@ -266,44 +268,53 @@ severityChart = new Chart(severityChartEl, {
     }
   }
 });
+  if (isSingleDayView) {
+  // sakrij chart potpuno
+  if (lossTrendChart) {
+    lossTrendChart.destroy();
+    lossTrendChart = null;
+  }
+  lossChartWrapper.style.display = 'none';
+} else {
+  // prikazi chart (summary mode)
+  lossChartWrapper.style.display = 'block';
+
   if (lossTrendChart) lossTrendChart.destroy();
+
   const sortedDates = Object.keys(dailyTotals).sort();
 
-lossTrendChart = new Chart(lossTrendChartEl, {
-  type: 'line',
-  data: {
-    labels: sortedDates,
-    datasets: [{
-      data: sortedDates.map(d => dailyTotals[d]),
-      borderColor: '#3b82f6',
-      backgroundColor: 'rgba(59,130,246,0.08)',
-      fill: true,
-      tension: 0.3,
-      pointRadius: 4
-    }]
-  },
-  options: {
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      datalabels: {
-  align: 'top',
-  anchor: 'end',
-  offset: 6,
-  font: {
-    size: 11,
-    weight: '500'   // skida “težak bold”
-  },
-  color: () => {
-    return document.documentElement.classList.contains('dark')
-      ? '#9ca3af'    // siva u dark mode
-      : '#6b7280';   // siva u light mode
-  },
-  formatter: v => `$${v.toLocaleString()}`
-}
+  lossTrendChart = new Chart(lossTrendChartEl, {
+    type: 'line',
+    data: {
+      labels: sortedDates,
+      datasets: [{
+        data: sortedDates.map(d => dailyTotals[d]),
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59,130,246,0.08)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 4
+      }]
+    },
+    options: {
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        datalabels: {
+          align: 'top',
+          anchor: 'end',
+          offset: 6,
+          font: { size: 11, weight: '500' },
+          color: () =>
+            document.documentElement.classList.contains('dark')
+              ? '#9ca3af'
+              : '#6b7280',
+          formatter: v => `$${v.toLocaleString()}`
+        }
+      }
     }
-  }
-});
+  });
+}
   document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
   document.getElementById('loadingIndicator').style.display = 'none';
 }
