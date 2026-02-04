@@ -168,7 +168,7 @@ function renderDashboard(rows, selectedDate = null, selectedClient = '') {
     totalSlots++;
     totalLoss += loss;
 
-    const offenderKey = `${r.slotId}__${r.issueType}`;
+    const offenderKey = r.slotId;
     if (!offenderMap[offenderKey]) {
       offenderMap[offenderKey] = {
         slotId: r.slotId,
