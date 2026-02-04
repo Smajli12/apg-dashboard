@@ -50,9 +50,6 @@
     <div class="flex items-center gap-2 text-xs">
       <input type="date" id="dateFilter" class="px-2 py-1 border rounded dark:bg-darkcard">
       <span class="text-gray-400">to</span>
-      <select id="clientFilter" class="px-2 py-1 border rounded dark:bg-darkcard">
-        <option value="">All Clients</option>
-      </select>
       <button id="clearDate" class="text-blue-600 hover:underline">Clear</button>
       <button id="darkModeBtn" class="ml-2 px-3 py-1 rounded bg-gray-200 dark:bg-gray-700">
         <span id="modeLabel">Dark Mode</span>
@@ -118,6 +115,19 @@
 </div>
 
 <script>
+  // 🔐 DASHBOARD ACCESS TOKEN (FROM EMAIL)
+const params = new URLSearchParams(window.location.search);
+const token = params.get('token');
+
+if (!token) {
+  document.body.innerHTML = `
+    <div style="padding:40px;font-family:Inter,sans-serif">
+      <h2>Access denied</h2>
+      <p>This dashboard link is client-specific.</p>
+    </div>
+  `;
+  throw new Error('Missing dashboard token');
+}
 Chart.register(ChartDataLabels);
 const issueChartEl = document.getElementById('issueChart');
 const severityChartEl = document.getElementById('severityChart');
@@ -140,7 +150,6 @@ let issueChart, severityChart, lossTrendChart;
 let allRows = [];
 
 const dateInput = document.getElementById('dateFilter');
-const clientFilter = document.getElementById('clientFilter');
 const clearDate = document.getElementById('clearDate');
 
 function renderDashboard(rows, selectedDate = null, selectedClient = '') {
@@ -158,7 +167,6 @@ function renderDashboard(rows, selectedDate = null, selectedClient = '') {
 
   const dateKey = r.receivedAt.split('T')[0];
   if (selectedDate && dateKey !== selectedDate) return;
-  if (selectedClient && r.clientId !== selectedClient) return;
     slotSet.add(r.slotId);
 
 
@@ -418,22 +426,27 @@ if (cached && Date.now() - cached.ts < CACHE_TTL) {
   renderDashboard(allRows);
 }
 
-fetch(SHEET_URL)
+fetch(`${SHEET_URL}?token=${token}`)
   .then(r => r.json())
   .then(j => {
     allRows = j.data || [];
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: allRows }));
-    renderDashboard(allRows, dateInput.value, clientFilter.value);
+    localStorage.setItem(
+      CACHE_KEY,
+      JSON.stringify({ ts: Date.now(), data: allRows })
+    );
+    renderDashboard(allRows, dateInput.value);
   })
   .catch(() => {
     document.getElementById('loadingIndicator').style.display = 'none';
   });
 
-dateInput.addEventListener('change', () => renderDashboard(allRows, dateInput.value, clientFilter.value));
-clientFilter.addEventListener('change', () => renderDashboard(allRows, dateInput.value, clientFilter.value));
+dateInput.addEventListener('change', () =>
+  renderDashboard(allRows, dateInput.value)
+);
+
 clearDate.addEventListener('click', () => {
   dateInput.value = '';
-  renderDashboard(allRows, null, clientFilter.value);
+  renderDashboard(allRows, null);
 });
 </script>
 
