@@ -217,7 +217,7 @@ function renderDashboard(rows, selectedDate = null, selectedClient = '') {
     y: { ticks: { display: false } }
   }
 }
-
+});
   severityChart?.destroy();
   severityChart = new Chart(severityChartEl, {
     type: 'pie',
