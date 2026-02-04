@@ -79,7 +79,7 @@
       <div id="issueCount" class="text-3xl font-bold">—</div>
     </div>
     <div class="bg-white dark:bg-darkcard rounded-xl shadow p-6 text-center">
-      <div class="text-xs uppercase tracking-wide text-gray-500 mb-1">Total Slots</div>
+      <div class="text-xs uppercase tracking-wide text-gray-500 mb-1">Affected Slots</div>
       <div id="slotCount" class="text-3xl font-bold">—</div>
     </div>
     <div class="bg-white dark:bg-darkcard rounded-xl shadow p-6 text-center">
@@ -144,58 +144,59 @@ const clientFilter = document.getElementById('clientFilter');
 const clearDate = document.getElementById('clearDate');
 
 function renderDashboard(rows, selectedDate = null, selectedClient = '') {
-  const budgetMap = new Map(); 
-  const issueTypes = {}, severities = {}, dailyTotals = {};
-  let totalSlots = 0, totalLoss = 0;
+  const issueTypes = {};
+  const severities = {};
+  const dailyTotals = {};        // deduped per day
+  const dedupeMap = new Map();  // slotId__pageUrl__date → loss
+  const slotSet = new Set();
   const offenderMap = {};
-  const lossChartWrapper = document.getElementById('lossChartWrapper');
   const isSingleDayView = !!selectedDate;
 
+
   rows.forEach(r => {
-    if (!r || !r.issueType || !r.receivedAt) return;
+  if (!r || !r.issueType || !r.receivedAt) return;
 
-    const dateKey = r.receivedAt.split('T')[0];
-    if (selectedDate && dateKey !== selectedDate) return;
-    if (selectedClient && r.clientId !== selectedClient) return;
+  const dateKey = r.receivedAt.split('T')[0];
+  if (selectedDate && dateKey !== selectedDate) return;
+  if (selectedClient && r.clientId !== selectedClient) return;
+    slotSet.add(r.slotId);
 
-    const loss = Number(r.estimatedDailyRevenueRisk) || 0;
-    const type = labelMap[r.issueType] || r.issueType;
-    const sev = r.severity || 'unknown';
 
-    issueTypes[type] = (issueTypes[type] || 0) + 1;
-    severities[sev] = (severities[sev] || 0) + 1;
+  const loss = Number(r.estimatedDailyRevenueRisk) || 0;
+
+  // ✅ DEDUPE: slot + page + day
+  const dedupeKey = `${r.slotId}__${r.pageUrl}__${dateKey}`;
+
+  if (!dedupeMap.has(dedupeKey)) {
+    dedupeMap.set(dedupeKey, loss);
     dailyTotals[dateKey] = (dailyTotals[dateKey] || 0) + loss;
+  }
 
-    totalSlots++;
-    const budgetKey = `${r.slotId}__${r.pageUrl}`;
+  // === ostalo je INFO, ne budžet ===
+  const type = labelMap[r.issueType] || r.issueType;
+  const sev = r.severity || 'unknown';
 
-if (!budgetMap.has(budgetKey)) {
-  budgetMap.set(budgetKey, loss);
-}
+  issueTypes[type] = (issueTypes[type] || 0) + 1;
+  severities[sev] = (severities[sev] || 0) + 1;
 
-    const offenderKey = r.slotId;
+  // === TOP OFFENDER MAP ===
+  if (!offenderMap[r.slotId]) {
+    offenderMap[r.slotId] = {
+      slotId: r.slotId,
+      issues: new Set(),
+      pages: new Map() // pageUrl → loss
+    };
+  }
 
-if (!offenderMap[offenderKey]) {
-  offenderMap[offenderKey] = {
-    slotId: r.slotId,
-    issues: new Set(),
-    pages: new Map() // pageUrl → loss
-  };
-}
+  offenderMap[r.slotId].issues.add(r.issueType);
 
-// issues (unique)
-offenderMap[offenderKey].issues.add(r.issueType);
+  if (!offenderMap[r.slotId].pages.has(r.pageUrl)) {
+    offenderMap[r.slotId].pages.set(r.pageUrl, loss);
+  }
+});
 
-// pages (dedupe po page)
-if (!offenderMap[offenderKey].pages.has(r.pageUrl)) {
-  offenderMap[offenderKey].pages.set(r.pageUrl, loss);
-}
-
-  });
 
   /* === TOP OFFENDER CALCULATION === */
-  const dedupedTotalLoss = Array.from(budgetMap.values())
-  .reduce((a, b) => a + b, 0);
   let topSlot = null;
   let topLoss = 0;
 
@@ -212,7 +213,10 @@ if (slotLoss > topLoss) {
 document.getElementById('issueCount').textContent =
   Object.keys(issueTypes).length;
 
-document.getElementById('slotCount').textContent = totalSlots;
+document.getElementById('slotCount').textContent = slotSet.size;
+
+const dedupedTotalLoss = Array.from(dedupeMap.values())
+  .reduce((a, b) => a + b, 0);
 
 document.getElementById('dailyLoss').textContent =
   `$${dedupedTotalLoss.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
