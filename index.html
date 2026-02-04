@@ -23,6 +23,7 @@
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 
@@ -39,16 +40,16 @@
   </div>
 </div>
 
-<div id="dashboardContent" class="max-w-6xl mx-auto py-8 px-4">
-
-  <!-- HEADER -->
-  <div class="flex flex-wrap justify-between gap-4 mb-6">
-    <h1 id="dashboardTitle" class="text-4xl font-extrabold tracking-tight">
-      Monitoring Alert – Overall Summary
+<!-- HEADER -->
+<header class="bg-white dark:bg-darkcard shadow-sm">
+  <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+    <h1 class="text-sm font-semibold tracking-wide">
+      AdPulse Guard
     </h1>
 
-    <div class="flex items-center gap-2 text-sm">
-      <input type="date" id="dateFilter" class="px-2 py-1 border rounded dark:bg-darkcard" />
+    <div class="flex items-center gap-2 text-xs">
+      <input type="date" id="dateFilter" class="px-2 py-1 border rounded dark:bg-darkcard">
+      <span class="text-gray-400">to</span>
       <select id="clientFilter" class="px-2 py-1 border rounded dark:bg-darkcard">
         <option value="">All Clients</option>
       </select>
@@ -58,10 +59,13 @@
       </button>
     </div>
   </div>
+</header>
+
+<div id="dashboardContent" class="max-w-6xl mx-auto py-8 px-4">
 
   <!-- TOP OFFENDER -->
   <div id="topOffenderBox" class="hidden bg-white dark:bg-darkcard rounded-xl shadow p-6 mb-6">
-    <h2 class="text-lg font-semibold mb-2">🚨 Top Offender Slot</h2>
+    <h2 class="text-sm font-semibold uppercase tracking-wide mb-3">Top Offender Slot</h2>
     <p><strong>Slot:</strong> <span id="offenderSlot"></span></p>
     <p><strong>Loss:</strong> <span id="offenderLoss"></span></p>
     <p><strong>Page:</strong> <span id="offenderPage"></span></p>
@@ -71,28 +75,33 @@
   <!-- KPI -->
   <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
     <div class="bg-white dark:bg-darkcard rounded-xl shadow p-6 text-center">
+      <div class="text-xs uppercase tracking-wide text-gray-500 mb-1">Issue Types</div>
       <div id="issueCount" class="text-3xl font-bold">—</div>
-      <div class="text-sm text-gray-500">Issue Types</div>
     </div>
     <div class="bg-white dark:bg-darkcard rounded-xl shadow p-6 text-center">
+      <div class="text-xs uppercase tracking-wide text-gray-500 mb-1">Total Slots</div>
       <div id="slotCount" class="text-3xl font-bold">—</div>
-      <div class="text-sm text-gray-500">Total Slots</div>
     </div>
     <div class="bg-white dark:bg-darkcard rounded-xl shadow p-6 text-center">
+      <div class="text-xs uppercase tracking-wide text-gray-500 mb-1">Daily Loss</div>
       <div id="dailyLoss" class="text-3xl font-bold text-red-600">$—</div>
-      <div class="text-sm text-gray-500">Daily Loss</div>
     </div>
   </div>
 
   <!-- CHARTS -->
   <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
     <div class="bg-white dark:bg-darkcard rounded-xl shadow p-4">
+      <h2 class="text-xs uppercase tracking-wide text-gray-500 mb-2">Issue Types</h2>
       <canvas id="issueChart" class="h-64"></canvas>
     </div>
+
     <div class="bg-white dark:bg-darkcard rounded-xl shadow p-4">
+      <h2 class="text-xs uppercase tracking-wide text-gray-500 mb-2">Severity Breakdown</h2>
       <canvas id="severityChart" class="h-64"></canvas>
     </div>
+
     <div class="bg-white dark:bg-darkcard rounded-xl shadow p-4 md:col-span-2">
+      <h2 class="text-xs uppercase tracking-wide text-gray-500 mb-2">Daily Revenue Loss</h2>
       <canvas id="lossTrendChart" class="h-64 w-full"></canvas>
     </div>
   </div>
@@ -103,6 +112,8 @@
 </div>
 
 <script>
+Chart.register(ChartDataLabels);
+
 const SHEET_URL = 'https://script.google.com/macros/s/AKfycbx-PFUcYyEXUR7Thw8kqzAWpCX74XY-4c-Si9myS69jloI9Vir_5YaZLXGCUiUquxMn/exec';
 const CACHE_KEY = 'apg_cache';
 const CACHE_TTL = 5 * 60 * 1000;
@@ -119,10 +130,6 @@ const labelMap = {
 let issueChart, severityChart, lossTrendChart;
 let allRows = [];
 
-const issueChartEl = document.getElementById('issueChart');
-const severityChartEl = document.getElementById('severityChart');
-const lossTrendChartEl = document.getElementById('lossTrendChart');
-
 const dateInput = document.getElementById('dateFilter');
 const clientFilter = document.getElementById('clientFilter');
 const clearDate = document.getElementById('clearDate');
@@ -133,6 +140,8 @@ function renderDashboard(rows, selectedDate = null, selectedClient = '') {
   let topSlot = null, topLoss = 0;
 
   rows.forEach(r => {
+    if (!r.issueType) return;
+
     const dateKey = r.receivedAt.split('T')[0];
     if (selectedDate && dateKey !== selectedDate) return;
     if (selectedClient && r.clientId !== selectedClient) return;
@@ -169,7 +178,8 @@ function renderDashboard(rows, selectedDate = null, selectedClient = '') {
     document.getElementById('offenderSlot').textContent = topSlot.slotId;
     document.getElementById('offenderLoss').textContent =
       `$${topLoss.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
-    document.getElementById('offenderPage').textContent = topSlot.pageUrl;
+    document.getElementById('offenderPage').innerHTML =
+      `<a href="${topSlot.pageUrl}" target="_blank" class="text-blue-600 underline break-all">${topSlot.pageUrl}</a>`;
     document.getElementById('offenderIssue').textContent =
       labelMap[topSlot.issueType] || topSlot.issueType;
   } else {
@@ -186,8 +196,26 @@ function renderDashboard(rows, selectedDate = null, selectedClient = '') {
   severityChart?.destroy();
   severityChart = new Chart(severityChartEl, {
     type: 'pie',
-    data: { labels: Object.keys(severities), datasets: [{ data: Object.values(severities), backgroundColor: ['#dc2626','#f59e0b','#16a34a'] }] },
-    options: { maintainAspectRatio: false }
+    data: {
+      labels: Object.keys(severities),
+      datasets: [{
+        data: Object.values(severities),
+        backgroundColor: ['#dc2626','#f59e0b','#16a34a']
+      }]
+    },
+    options: {
+      maintainAspectRatio: false,
+      plugins: {
+        datalabels: {
+          color: '#fff',
+          font: { weight: 'bold' },
+          formatter: (v, ctx) => {
+            const t = ctx.dataset.data.reduce((a,b)=>a+b,0);
+            return Math.round((v/t)*100) + '%';
+          }
+        }
+      }
+    }
   });
 
   lossTrendChart?.destroy();
@@ -212,14 +240,13 @@ darkModeBtn.addEventListener('click', () => {
   modeLabel.textContent = isDark ? 'Light Mode' : 'Dark Mode';
 });
 
-// CACHE FAST PATH
+// CACHE
 const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
 if (cached && Date.now() - cached.ts < CACHE_TTL) {
   allRows = cached.data;
   renderDashboard(allRows);
 }
 
-// FETCH
 fetch(SHEET_URL)
   .then(r => r.json())
   .then(j => {
@@ -231,7 +258,6 @@ fetch(SHEET_URL)
     document.getElementById('loadingIndicator').style.display = 'none';
   });
 
-// FILTERS
 dateInput.addEventListener('change', () => renderDashboard(allRows, dateInput.value, clientFilter.value));
 clientFilter.addEventListener('change', () => renderDashboard(allRows, dateInput.value, clientFilter.value));
 clearDate.addEventListener('click', () => {
