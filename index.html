@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Monitoring Alert Dashboard</title>
+  <title>Ad Delivery Risk Monitoring</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -44,7 +44,7 @@
 <header class="bg-white dark:bg-darkcard shadow-sm">
   <div class="max-w-6xl mx-auto px-4 py-3 flex flex-col gap-3 md:flex-row md:justify-between md:items-center">
     <h1 class="text-sm font-semibold tracking-wide">
-      Monitoring Alert
+      Ad Delivery Monitoring
     </h1>
 
     <div class="flex flex-wrap items-center gap-2 text-xs md:flex-nowrap">
@@ -81,7 +81,7 @@
   <!-- TOP OFFENDER -->
   <div id="topOffenderBox" class="hidden bg-white dark:bg-darkcard rounded-xl shadow p-6 mb-6">
     <h2 class="text-lg font-semibold mb-2">
-  🚨 Top Offender Slot · <span class="text-red-600">Fix this first</span>
+  🚨 Top Offender · <span class="text-red-600">Fix this first</span>
 </h2>
     <p><strong>Slot:</strong> <span id="offenderSlot"></span></p>
     <p><strong>Loss:</strong> <span id="offenderLoss"></span></p>
@@ -92,15 +92,15 @@
   <!-- KPI -->
   <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
     <div class="bg-white dark:bg-darkcard rounded-xl shadow p-6 text-center">
-      <div class="text-xs uppercase tracking-wide text-gray-500 mb-1">Issue Types</div>
+      <div class="text-xs uppercase tracking-wide text-gray-500 mb-1">Detected Issues</div>
       <div id="issueCount" class="text-3xl font-bold">—</div>
     </div>
     <div class="bg-white dark:bg-darkcard rounded-xl shadow p-6 text-center">
-      <div class="text-xs uppercase tracking-wide text-gray-500 mb-1">Affected Slots</div>
+      <div class="text-xs uppercase tracking-wide text-gray-500 mb-1">Impacted Slots</div>
       <div id="slotCount" class="text-3xl font-bold">—</div>
     </div>
     <div class="bg-white dark:bg-darkcard rounded-xl shadow p-6 text-center">
-      <div class="text-xs uppercase tracking-wide text-gray-500 mb-1">Daily Loss</div>
+      <div class="text-xs uppercase tracking-wide text-gray-500 mb-1">Estimated Daily Risk</div>
       <div id="dailyLoss" class="text-3xl font-bold text-red-600">$—</div>
     </div>
   </div>
@@ -108,7 +108,7 @@
   <!-- CHARTS -->
   <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
     <div class="bg-white dark:bg-darkcard rounded-xl shadow p-4">
-      <h2 class="text-xs uppercase tracking-wide text-gray-500 mb-2">Issue Types</h2>
+      <h2 class="text-xs uppercase tracking-wide text-gray-500 mb-2">Detected Issues</h2>
       <div class="h-64">
         <canvas id="issueChart"></canvas>
       </div>
@@ -122,7 +122,7 @@
     </div>
 
     <div id="lossChartWrapper" class="bg-white dark:bg-darkcard rounded-xl shadow p-4 md:col-span-2">
-      <h2 class="text-xs uppercase tracking-wide text-gray-500 mb-2">Daily Revenue Loss</h2>
+      <h2 class="text-xs uppercase tracking-wide text-gray-500 mb-2">Revenue at Risk · Daily</h2>
       <div class="h-64">
         <canvas id="lossTrendChart"></canvas>
       </div>
@@ -130,7 +130,7 @@
   </div>
 
   <p class="text-xs text-gray-400 mt-6 text-right">
-  Live monitoring · Last update <span id="lastUpdated">—</span>
+  Live monitoring · Data refreshed <span id="lastUpdated">—</span>
 </p>
 </div>
   <script>
