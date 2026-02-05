@@ -437,10 +437,21 @@ severityChart = new Chart(severityChartEl, {
 }
   if (lastFetchTs) {
   const minutesAgo = Math.floor((Date.now() - lastFetchTs) / 60000);
-  document.getElementById('lastUpdated').textContent =
-    minutesAgo < 1 ? 'just now' : `${minutesAgo}m ago`;
+
+  let statusText = '';
+
+  if (minutesAgo < 10) {
+    statusText = 'Live monitoring · Issues detected recently';
+  } else if (minutesAgo < 60) {
+    statusText = `Monitoring active · Last issue ${minutesAgo}m ago`;
+  } else {
+    statusText = 'Monitoring active · No new issues detected';
+  }
+
+  document.getElementById('lastUpdated').textContent = statusText;
 } else {
-  document.getElementById('lastUpdated').textContent = '—';
+  document.getElementById('lastUpdated').textContent =
+    'Monitoring active · No data yet';
 }
   document.getElementById('loadingIndicator').style.display = 'none';
 }
