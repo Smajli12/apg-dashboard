@@ -355,6 +355,25 @@ issueChart = new Chart(issueChartEl, {
   },
   options: {
     maintainAspectRatio: false,
+    onClick: (evt, elements) => {
+    if (!elements.length) return;
+
+    const index = elements[0].index;
+    const clickedLabel = issueChart.data.labels[index];
+
+    const issueKey = Object.keys(labelMap)
+      .find(k => labelMap[k] === clickedLabel);
+
+    if (!issueKey) return;
+
+    selectedIssueFilter = issueKey;
+    issueFilter.value = issueKey;
+
+    issueFilterNote.textContent = `Showing impact related to: ${clickedLabel}`;
+    issueFilterNote.classList.remove('hidden');
+
+    renderDashboard(allRows, dateInput.value);
+  },
     plugins: {
       legend: { display: false },
       datalabels: {
