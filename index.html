@@ -80,7 +80,9 @@
 
   <!-- TOP OFFENDER -->
   <div id="topOffenderBox" class="hidden bg-white dark:bg-darkcard rounded-xl shadow p-6 mb-6">
-    <h2 class="text-lg font-semibold mb-2">🚨 Top Offender Slot</h2>
+    <h2 class="text-lg font-semibold mb-2">
+  🚨 Top Offender Slot · <span class="text-red-600">Fix this first</span>
+</h2>
     <p><strong>Slot:</strong> <span id="offenderSlot"></span></p>
     <p><strong>Loss:</strong> <span id="offenderLoss"></span></p>
     <p><strong>Page:</strong> <span id="offenderPage"></span></p>
@@ -128,8 +130,8 @@
   </div>
 
   <p class="text-xs text-gray-400 mt-6 text-right">
-    Last updated: <span id="lastUpdated">—</span>
-  </p>
+  Live monitoring · Last update <span id="lastUpdated">—</span>
+</p>
 </div>
   <script>
   // 🔐 DASHBOARD ACCESS TOKEN (FROM EMAIL)
@@ -431,7 +433,11 @@ severityChart = new Chart(severityChartEl, {
     }
   });
 }
-  document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
+  const now = Date.now();
+const minutesAgo = Math.floor((now - now) / 60000);
+
+document.getElementById('lastUpdated').textContent =
+  minutesAgo <= 1 ? 'just now' : `${minutesAgo}m ago`;
   document.getElementById('loadingIndicator').style.display = 'none';
 }
 
