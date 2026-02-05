@@ -77,7 +77,30 @@
 </header>
 
 <div id="dashboardContent" class="max-w-6xl mx-auto py-8 px-4">
+<!-- ISSUE FILTER -->
+<div class="bg-white dark:bg-darkcard rounded-xl shadow p-4 mb-4 flex flex-wrap items-center gap-3">
+  <span class="text-xs uppercase tracking-wide text-gray-500">
+    Filter by issue
+  </span>
 
+  <select
+    id="issueFilter"
+    class="px-2 py-1 text-sm border rounded dark:bg-darkcard"
+  >
+    <option value="">All issues</option>
+    <option value="gpt_not_loaded">GPT not loaded</option>
+    <option value="wrong_network">Wrong network</option>
+    <option value="slot_not_registered">DOM slot not in GPT</option>
+    <option value="defined_without_dom">GPT slot without DOM</option>
+    <option value="empty_response">Empty response</option>
+    <option value="unexpected_size">Unexpected size</option>
+  </select>
+
+  <span
+    id="issueFilterNote"
+    class="text-xs text-gray-400 hidden"
+  ></span>
+</div>
   <!-- TOP OFFENDER -->
   <div id="topOffenderBox" class="hidden bg-white dark:bg-darkcard rounded-xl shadow p-6 mb-6">
     <h2 class="text-lg font-semibold mb-2">
@@ -173,6 +196,10 @@ let lastFetchTs = null;
 const dateInput = document.getElementById('dateFilter');
 const clearDate = document.getElementById('clearDate');
 const viewModeLabel = document.getElementById('viewModeLabel');
+const issueFilter = document.getElementById('issueFilter');
+const issueFilterNote = document.getElementById('issueFilterNote');
+
+let selectedIssueFilter = '';
 
 function updateViewModeLabel(selectedDate) {
   if (selectedDate) {
@@ -195,9 +222,9 @@ function renderDashboard(rows, selectedDate = null, selectedClient = '') {
 
   rows.forEach(r => {
   if (!r || !r.issueType || !r.receivedAt) return;
-
   const dateKey = r.receivedAt.split('T')[0];
   if (selectedDate && dateKey !== selectedDate) return;
+  if (selectedIssueFilter && r.issueType !== selectedIssueFilter) return;
     slotSet.add(r.slotId);
 
 
@@ -519,6 +546,19 @@ clearDate.addEventListener('click', () => {
   dateInput.value = '';
   updateViewModeLabel(null);
   renderDashboard(allRows, null);
+});
+  issueFilter.addEventListener('change', () => {
+  selectedIssueFilter = issueFilter.value;
+
+  if (selectedIssueFilter) {
+    const label = labelMap[selectedIssueFilter] || selectedIssueFilter;
+    issueFilterNote.textContent = `Showing impact related to: ${label}`;
+    issueFilterNote.classList.remove('hidden');
+  } else {
+    issueFilterNote.classList.add('hidden');
+  }
+
+  renderDashboard(allRows, dateInput.value);
 });
 </script>
 
