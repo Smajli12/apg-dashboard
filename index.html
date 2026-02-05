@@ -94,7 +94,12 @@
     <option value="empty_response">Empty response</option>
     <option value="unexpected_size">Unexpected size</option>
   </select>
-
+  <button
+  id="clearIssueFilter"
+  class="text-blue-600 hover:underline text-xs hidden"
+>
+  Clear
+</button>
   <span
     id="issueFilterNote"
     class="text-xs text-gray-400 hidden"
@@ -197,9 +202,16 @@ const clearDate = document.getElementById('clearDate');
 const viewModeLabel = document.getElementById('viewModeLabel');
 const issueFilter = document.getElementById('issueFilter');
 const issueFilterNote = document.getElementById('issueFilterNote');
+const clearIssueFilterBtn = document.getElementById('clearIssueFilter');
 
 let selectedIssueFilter = '';
-
+function updateIssueClearVisibility() {
+  if (selectedIssueFilter) {
+    clearIssueFilterBtn.classList.remove('hidden');
+  } else {
+    clearIssueFilterBtn.classList.add('hidden');
+  }
+}
 function updateViewModeLabel(selectedDate) {
   if (selectedDate) {
     viewModeLabel.textContent = 'Daily view';
@@ -367,6 +379,7 @@ issueChart = new Chart(issueChartEl, {
 
     selectedIssueFilter = issueKey;
     issueFilter.value = issueKey;
+    updateIssueClearVisibility();
 
     issueFilterNote.textContent = `Showing impact related to: ${clickedLabel}`;
     issueFilterNote.classList.remove('hidden');
@@ -575,9 +588,18 @@ clearDate.addEventListener('click', () => {
   } else {
     issueFilterNote.classList.add('hidden');
   }
-
+  updateIssueClearVisibility();
   renderDashboard(allRows, dateInput.value);
 });
+  clearIssueFilterBtn.addEventListener('click', () => {
+  selectedIssueFilter = '';
+  issueFilter.value = '';
+  issueFilterNote.classList.add('hidden');
+  issueFilter.blur();
+  updateIssueClearVisibility();
+  renderDashboard(allRows, dateInput.value);
+});
+  updateIssueClearVisibility();
 </script>
 
 </body>
