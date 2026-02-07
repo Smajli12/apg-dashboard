@@ -468,10 +468,7 @@ severityChart = new Chart(severityChartEl, {
     datasets: [{
       data: severityData,
       backgroundColor: severityColors,
-      borderColor: 
-        document.documentElement.classList.contains('dark')
-          ? APG_BRAND.chartBorderLight
-          : APG_BRAND.chartBorderDark,
+      borderColor: 'rgba(203, 213, 225, 0.25)', 
       borderWidth: 1.4   // 👈 malo jače, ali classy
     }]
   },
@@ -515,8 +512,8 @@ severityChart = new Chart(severityChartEl, {
       labels: sortedDates,
       datasets: [{
         data: sortedDates.map(d => dailyTotals[d]),
-        borderColor: APG_BRAND.primary,
-        backgroundColor: APG_BRAND.bgInfoLight,
+        borderColor: '#6366f1',                 // indigo linija
+        backgroundColor: 'rgba(99,102,241,0.04)',
         fill: true,
         tension: 0.3,
         pointRadius: 4
