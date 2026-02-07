@@ -265,7 +265,7 @@ function renderDashboard(rows, selectedDate = null, selectedClient = '') {
 
   // === ostalo je INFO, ne budžet ===
   const type = labelMap[r.issueType] || r.issueType;
-  const sev = r.severity || 'unknown';
+  const sev = (r.severity || 'unknown').toUpperCase();
 
   issueTypes[type] = (issueTypes[type] || 0) + 1;
   severities[sev] = (severities[sev] || 0) + 1;
@@ -429,23 +429,32 @@ issueChart = new Chart(issueChartEl, {
     }
   }
 });
+const severityColorMap = {
+  HIGH: '#dc2626',
+  MEDIUM: '#f59e0b',
+  LOW: '#16a34a'
+};
 
-  if (severityChart) severityChart.destroy();
+const severityLabels = Object.keys(severities);
+const severityData = Object.values(severities);
+const severityColors = severityLabels.map(
+  s => severityColorMap[s] || '#9ca3af'
+);
+
+if (severityChart) severityChart.destroy();
 severityChart = new Chart(severityChartEl, {
   type: 'pie',
   data: {
-    labels: Object.keys(severities),
+    labels: severityLabels,
     datasets: [{
-      data: Object.values(severities),
-      backgroundColor: ['#dc2626', '#f59e0b', '#16a34a']
+      data: severityData,
+      backgroundColor: severityColors
     }]
   },
   options: {
     maintainAspectRatio: false,
     plugins: {
-      legend: {
-        position: 'bottom'
-      },
+      legend: { position: 'bottom' },
       datalabels: {
         color: '#ffffff',
         font: {
@@ -460,6 +469,7 @@ severityChart = new Chart(severityChartEl, {
     }
   }
 });
+
   if (isSingleDayView) {
   // sakrij chart potpuno
   if (lossTrendChart) {
