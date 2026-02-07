@@ -530,8 +530,8 @@ severityChart = new Chart(severityChartEl, {
           font: { size: 11, weight: '400' },
           color: () =>
             document.documentElement.classList.contains('dark')
-              ? '#c7c9d1'   // soft light gray (dark mode)
-              : '#6b7280',  // neutral gray (light mode)
+               ? '#9ca3af'   // gray-400 (čisto, čitljivo, ne bode)
+               : '#6b7280',  // gray-500 (kao pre)
           formatter: v => `$${v.toLocaleString()}`
         }
       }
