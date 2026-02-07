@@ -272,15 +272,21 @@ function renderDashboard(rows, selectedDate = null, selectedClient = '') {
     slotSet.add(r.slotId);
 
 
-  const loss = Number(r.estimatedDailyRevenueRisk) || 0;
+  const severity = (r.severity || '').toUpperCase();
+  const isBudgetRelevant =
+  severity === 'HIGH' || severity === 'MEDIUM';
 
-  // ✅ DEDUPE: slot + page + day
-  const dedupeKey = `${r.slotId}__${r.pageUrl}__${dateKey}`;
+const loss = isBudgetRelevant
+  ? Number(r.estimatedDailyRevenueRisk) || 0
+  : 0;
 
-  if (!dedupeMap.has(dedupeKey)) {
-    dedupeMap.set(dedupeKey, loss);
-    dailyTotals[dateKey] = (dailyTotals[dateKey] || 0) + loss;
-  }
+// ✅ DEDUPE: slot + page + day
+const dedupeKey = `${r.slotId}__${r.pageUrl}__${dateKey}`;
+
+if (!dedupeMap.has(dedupeKey)) {
+  dedupeMap.set(dedupeKey, loss);
+  dailyTotals[dateKey] = (dailyTotals[dateKey] || 0) + loss;
+}
 
   // === ostalo je INFO, ne budžet ===
   const type = labelMap[r.issueType] || r.issueType;
