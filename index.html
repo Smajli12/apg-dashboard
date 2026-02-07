@@ -176,6 +176,7 @@
 const params = new URLSearchParams(window.location.search);
 const token = params.get('token');
 const presetDate = params.get('date');
+let activeDate = presetDate || '';
 
 if (!token) {
   document.body.innerHTML = `
@@ -417,7 +418,7 @@ issueChart = new Chart(issueChartEl, {
     issueFilterNote.textContent = `Showing impact related to: ${clickedLabel}`;
     issueFilterNote.classList.remove('hidden');
 
-    renderDashboard(allRows, dateInput.value);
+    renderDashboard(allRows, activeDate);
   },
     plugins: {
       legend: { display: false },
@@ -581,7 +582,7 @@ if (cached && Date.now() - cached.ts < CACHE_TTL) {
     renderDashboard(allRows, presetDate);
   } else {
     updateViewModeLabel(null);
-    renderDashboard(allRows);
+    renderDashboard(allRows, activeDate);
   }
 }
 fetch(`${SHEET_URL}?token=${token}`)
@@ -594,15 +595,15 @@ fetch(`${SHEET_URL}?token=${token}`)
     JSON.stringify({ ts: Date.now(), data: allRows })
   );
 
-  if (presetDate) {
-    dateInput.value = presetDate;
-    updateViewModeLabel(presetDate);
-    renderDashboard(allRows, presetDate);
-  } else {
-    updateViewModeLabel(dateInput.value);
-    renderDashboard(allRows, dateInput.value);
-  }
-})
+  if (activeDate) {
+  dateInput.value = activeDate;
+  updateViewModeLabel(activeDate);
+  renderDashboard(allRows, activeDate);
+} else {
+  updateViewModeLabel(null);
+  renderDashboard(allRows, null);
+}
+
   .catch((error) => {
     console.error('Error fetching data:', error);
     // Ako dođe do greške, loading indikator se skriva
@@ -614,15 +615,18 @@ fetch(`${SHEET_URL}?token=${token}`)
   });
 
 dateInput.addEventListener('change', () => {
-  updateViewModeLabel(dateInput.value);
-  renderDashboard(allRows, dateInput.value);
+  activeDate = dateInput.value;
+  updateViewModeLabel(activeDate);
+  renderDashboard(allRows, activeDate);
 });
 
 clearDate.addEventListener('click', () => {
+  activeDate = '';
   dateInput.value = '';
   updateViewModeLabel(null);
   renderDashboard(allRows, null);
 });
+
   issueFilter.addEventListener('change', () => {
   selectedIssueFilter = issueFilter.value;
 
@@ -634,7 +638,7 @@ clearDate.addEventListener('click', () => {
     issueFilterNote.classList.add('hidden');
   }
   updateIssueClearVisibility();
-  renderDashboard(allRows, dateInput.value);
+  renderDashboard(allRows, activeDate);
 });
   clearIssueFilterBtn.addEventListener('click', () => {
   selectedIssueFilter = '';
@@ -642,7 +646,7 @@ clearDate.addEventListener('click', () => {
   issueFilterNote.classList.add('hidden');
   issueFilter.blur();
   updateIssueClearVisibility();
-  renderDashboard(allRows, dateInput.value);
+  renderDashboard(allRows, activeDate);
 });
   updateIssueClearVisibility();
 </script>
