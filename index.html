@@ -93,6 +93,9 @@
     <option value="defined_without_dom">GPT slot without DOM</option>
     <option value="empty_response">Empty response</option>
     <option value="unexpected_size">Unexpected size</option>
+    <!-- 🧠 INFO / layout -->
+  <option value="layout_overlap">Layout overlap</option>
+  <option value="ad_visibility_impaired">Ad visibility impaired</option>
   </select>
   <button
   id="clearIssueFilter"
@@ -198,7 +201,10 @@ const labelMap = {
   slot_not_registered: 'DOM slot not in GPT',
   defined_without_dom: 'GPT slot without DOM',
   unexpected_size: 'Unexpected size',
-  empty_response: 'Empty response'
+  empty_response: 'Empty response',
+   // 🧠 layout / visibility (INFO)
+  layout_overlap: 'Layout overlap',
+  ad_visibility_impaired: 'Ad visibility impaired'
 };
 
 let issueChart, severityChart, lossTrendChart;
