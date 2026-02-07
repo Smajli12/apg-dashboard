@@ -375,7 +375,7 @@ issueChart = new Chart(issueChartEl, {
     labels: Object.keys(issueTypes),
     datasets: [{
       data: Object.values(issueTypes),
-      backgroundColor: '#2563eb'
+      backgroundColor: '#6366f1'
     }]
   },
   options: {
@@ -430,9 +430,9 @@ issueChart = new Chart(issueChartEl, {
   }
 });
 const severityColorMap = {
-  HIGH: '#dc2626',
-  MEDIUM: '#f59e0b',
-  LOW: '#22c55e'
+  HIGH: '#b91c1c',
+  MEDIUM: '#d97706',
+  LOW: '#15803d'
 };
 
 const severityLabels = Object.keys(severities);
@@ -491,7 +491,7 @@ severityChart = new Chart(severityChartEl, {
       labels: sortedDates,
       datasets: [{
         data: sortedDates.map(d => dailyTotals[d]),
-        borderColor: '#2563eb',
+        borderColor: '#6366f1',
         backgroundColor: 'rgba(59,130,246,0.08)',
         fill: true,
         tension: 0.3,
@@ -510,7 +510,7 @@ severityChart = new Chart(severityChartEl, {
           color: () =>
             document.documentElement.classList.contains('dark')
               ? '#9ca3af'
-              : '#1e40af',
+              : '#312e81',
           formatter: v => `$${v.toLocaleString()}`
         }
       }
