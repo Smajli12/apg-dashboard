@@ -207,6 +207,24 @@ const labelMap = {
   ad_visibility_impaired: 'Ad visibility impaired'
 };
 
+    const APG_BRAND = {
+  primary: '#6366f1',        // indigo
+  primarySoft: '#818cf8',
+
+  danger: '#b91c1c',
+  warning: '#d97706',
+  success: '#15803d',
+
+  textMuted: '#6b7280',
+  textMutedDark: '#c7c9d1',
+
+  chartBorderLight: 'rgba(255,255,255,0.35)',
+  chartBorderDark: 'rgba(0,0,0,0.25)',
+
+  bgInfoLight: '#eef2ff',
+  bgInfoDark: 'rgba(99,102,241,0.2)'
+};
+
 let issueChart, severityChart, lossTrendChart;
 let allRows = [];
 let lastFetchTs = null;
@@ -376,7 +394,7 @@ issueChart = new Chart(issueChartEl, {
     labels: Object.keys(issueTypes),
     datasets: [{
       data: Object.values(issueTypes),
-      backgroundColor: '#6366f1'
+      backgroundColor: APG_BRAND.primary
     }]
   },
   options: {
@@ -431,9 +449,9 @@ issueChart = new Chart(issueChartEl, {
   }
 });
 const severityColorMap = {
-  HIGH: '#b91c1c',
-  MEDIUM: '#d97706',
-  LOW: '#15803d'
+  HIGH: APG_BRAND.danger,
+  MEDIUM: APG_BRAND.warning,
+  LOW: APG_BRAND.success
 };
 
 const severityLabels = Object.keys(severities);
@@ -450,8 +468,11 @@ severityChart = new Chart(severityChartEl, {
     datasets: [{
       data: severityData,
       backgroundColor: severityColors,
-      borderColor: 'rgba(255,255,255,0.25)',
-      borderWidth: 0.8
+      borderColor: 
+        document.documentElement.classList.contains('dark')
+          ? APG_BRAND.chartBorderLight
+          : APG_BRAND.chartBorderDark,
+      borderWidth: 1.4   // 👈 malo jače, ali classy
     }]
   },
   options: {
@@ -494,8 +515,8 @@ severityChart = new Chart(severityChartEl, {
       labels: sortedDates,
       datasets: [{
         data: sortedDates.map(d => dailyTotals[d]),
-        borderColor: '#6366f1',
-        backgroundColor: 'rgba(59,130,246,0.08)',
+        borderColor: APG_BRAND.primary,
+        backgroundColor: APG_BRAND.bgInfoLight,
         fill: true,
         tension: 0.3,
         pointRadius: 4
