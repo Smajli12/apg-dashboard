@@ -173,9 +173,10 @@
   <script>
   // 🔐 DASHBOARD ACCESS TOKEN (FROM EMAIL)
 const params = new URLSearchParams(window.location.search);
+const fromParam = params.get('from');
 const token = params.get('token');
 let activeDate = params.get('date') || '';
-const cameFromReality = params.get('from') === 'reality';
+const cameFromReality = fromParam === 'reality';
 
 if (!token) {
   document.body.innerHTML = `
@@ -247,6 +248,7 @@ function updateIssueClearVisibility() {
 function updateViewModeLabel(selectedDate) {
   if (cameFromReality) {
     viewModeLabel.textContent = '🎭 Reality follow-up';
+    viewModeLabel.classList.add('bg-purple-100', 'text-purple-700');
     return;
   }
 
@@ -256,7 +258,7 @@ function updateViewModeLabel(selectedDate) {
     viewModeLabel.textContent = 'Summary view';
   }
 }
-  updateViewModeLabel(activeDate);
+  updateViewModeLabel(cameFromReality ? null : activeDate);
 function getLastIssueTimestamp(rows) {
   if (!rows || !rows.length) return null;
 
@@ -708,7 +710,7 @@ if (cached && Date.now() - cached.ts < CACHE_TTL) {
   renderedFromCache = true;
 
   if (activeDate) dateInput.value = activeDate;
-  updateViewModeLabel(activeDate);
+  updateViewModeLabel(cameFromReality ? null : activeDate);
   renderDashboard(allRows, activeDate);
 }
 fetch(`${SHEET_URL}?token=${token}`)
@@ -722,7 +724,7 @@ fetch(`${SHEET_URL}?token=${token}`)
   );
   if (renderedFromCache) return;
   if (activeDate) dateInput.value = activeDate;
-    updateViewModeLabel(activeDate);
+    updateViewModeLabel(cameFromReality ? null : activeDate);
     renderDashboard(allRows, activeDate);
   })
   .catch((error) => {
@@ -738,12 +740,16 @@ dateInput.addEventListener('change', () => {
   activeDate = dateInput.value;
   const url = new URL(window.location);
   if (activeDate) {
-    url.searchParams.set('date', activeDate);
-  } else {
-    url.searchParams.delete('date');
-  }
+  url.searchParams.set('date', activeDate);
+} else {
+  url.searchParams.delete('date');
+}
+
+if (fromParam) {
+  url.searchParams.set('from', fromParam);
+}
   window.history.replaceState({}, '', url);
-  updateViewModeLabel(activeDate);
+  updateViewModeLabel(cameFromReality ? null : activeDate);
   renderDashboard(allRows, activeDate);
 });
 
@@ -751,8 +757,13 @@ clearDate.addEventListener('click', () => {
   activeDate = '';
   dateInput.value = '';
   const url = new URL(window.location);
-  url.searchParams.delete('date');
-  window.history.replaceState({}, '', url);
+url.searchParams.delete('date');
+
+if (fromParam) {
+  url.searchParams.set('from', fromParam);
+}
+
+window.history.replaceState({}, '', url);
 
   updateViewModeLabel('');
   renderDashboard(allRows, '');
