@@ -182,7 +182,8 @@ if (presetDate && isFirstLoad) {
   url.searchParams.delete('date');
   window.history.replaceState({}, '', url);
 }
-let activeDate = (presetDate && isFirstLoad) ? presetDate : '';
+const effectivePresetDate = isFirstLoad ? presetDate : null;
+
 
 if (!token) {
   document.body.innerHTML = `
@@ -201,6 +202,7 @@ const lossTrendChartEl = document.getElementById('lossTrendChart');
 const SHEET_URL = 'https://script.google.com/macros/s/AKfycbx-PFUcYyEXUR7Thw8kqzAWpCX74XY-4c-Si9myS69jloI9Vir_5YaZLXGCUiUquxMn/exec';
 const CACHE_KEY = 'apg_cache';
 const CACHE_TTL = 5 * 60 * 1000;
+let hasRenderedInitialView = false;
 
 const labelMap = {
   gpt_not_loaded: 'GPT not loaded',
@@ -698,10 +700,11 @@ const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
 if (cached && Date.now() - cached.ts < CACHE_TTL) {
   allRows = cached.data;
 
-  if (presetDate) {
-    dateInput.value = presetDate;
-    updateViewModeLabel(presetDate);
-    renderDashboard(allRows, presetDate);
+  if (effectivePresetDate) {
+    dateInput.value = effectivePresetDate;
+    updateViewModeLabel(effectivePresetDate);
+    renderDashboard(allRows, effectivePresetDate);
+    hasRenderedInitialView = true;
   } else {
     updateViewModeLabel(null);
     renderDashboard(allRows, activeDate);
@@ -710,23 +713,26 @@ if (cached && Date.now() - cached.ts < CACHE_TTL) {
 fetch(`${SHEET_URL}?token=${token}`)
   .then(r => r.json())
   .then(j => {
-    allRows = j.data || [];
-    lastFetchTs = Date.now();
+  allRows = j.data || [];
+  lastFetchTs = Date.now();
 
-    localStorage.setItem(
-      CACHE_KEY,
-      JSON.stringify({ ts: Date.now(), data: allRows })
-    );
+  localStorage.setItem(
+    CACHE_KEY,
+    JSON.stringify({ ts: Date.now(), data: allRows })
+  );
+  if (effectivePresetDate && hasRenderedInitialView) {
+    return;
+  }
 
-    if (activeDate) {
-      dateInput.value = activeDate;
-      updateViewModeLabel(activeDate);
-      renderDashboard(allRows, activeDate);
-    } else {
-      updateViewModeLabel(null);
-      renderDashboard(allRows, null);
-    }
-  }) 
+  if (activeDate) {
+    dateInput.value = activeDate;
+    updateViewModeLabel(activeDate);
+    renderDashboard(allRows, activeDate);
+  } else {
+    updateViewModeLabel(null);
+    renderDashboard(allRows, null);
+  }
+})
   .catch((error) => {
     console.error('Error fetching data:', error);
     // Ako dođe do greške, loading indikator se skriva
