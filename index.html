@@ -175,7 +175,14 @@
 const params = new URLSearchParams(window.location.search);
 const token = params.get('token');
 const presetDate = params.get('date');
-let activeDate = presetDate || '';
+const isFirstLoad = !sessionStorage.getItem('apg_loaded');
+sessionStorage.setItem('apg_loaded', '1');
+if (presetDate && isFirstLoad) {
+  const url = new URL(window.location);
+  url.searchParams.delete('date');
+  window.history.replaceState({}, '', url);
+}
+let activeDate = (presetDate && isFirstLoad) ? presetDate : '';
 
 if (!token) {
   document.body.innerHTML = `
