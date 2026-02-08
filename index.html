@@ -183,7 +183,7 @@ if (presetDate && isFirstLoad) {
   window.history.replaceState({}, '', url);
 }
 const effectivePresetDate = isFirstLoad ? presetDate : null;
-
+let activeDate = effectivePresetDate || '';
 
 if (!token) {
   document.body.innerHTML = `
