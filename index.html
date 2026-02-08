@@ -395,10 +395,9 @@ document.getElementById('offenderIssue').innerHTML =
       <span class="inline-flex items-center
              bg-indigo-50 text-indigo-600
              dark:bg-indigo-900/30 dark:text-indigo-300
+             hover:bg-indigo-100 dark:hover:bg-indigo-900/50
              text-xs px-2.5 py-0.5 rounded-full mr-1
              font-medium tracking-tight">
-             hover:bg-indigo-100
-             dark:hover:bg-indigo-900/50
         ${labelMap[i] || i}
       </span>
     `)
@@ -584,22 +583,13 @@ const statusEl = document.getElementById('lastUpdated');
 if (statusEl) {
   statusEl.textContent = statusText;
 
-  // boja (INFO indigo, stale gray)
-  statusEl.className = ''; // reset
-
-  if (!lastIssueTs || minutesAgo < 1440) {
-    statusEl.classList.add('text-indigo-600', 'dark:text-indigo-300');
-  } else {
-    statusEl.classList.add('text-gray-400', 'dark:text-gray-500');
-  }
-}
-
-const statusEl = document.getElementById('lastUpdated');
-if (statusEl) {
-  statusEl.textContent = statusText;
-
   // reset
-  statusEl.className = 'text-xs';
+  statusEl.classList.remove(
+  'text-indigo-600',
+  'dark:text-indigo-300',
+  'text-gray-400',
+  'dark:text-gray-500'
+);
 
   if (!lastIssueTs) {
     statusEl.classList.add('text-indigo-600', 'dark:text-indigo-300');
