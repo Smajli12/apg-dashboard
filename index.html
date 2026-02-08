@@ -575,7 +575,10 @@ if (!lastIssueTs) {
   }
 }
 
-document.getElementById('lastUpdated').textContent = statusText;
+const statusEl = document.getElementById('lastUpdated');
+if (statusEl) {
+  statusEl.textContent = statusText;
+}
 
   document.getElementById('loadingIndicator').style.display = 'none';
 }
