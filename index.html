@@ -439,25 +439,26 @@ issueChart = new Chart(issueChartEl, {
   },
     plugins: {
   tooltip: {
-    backgroundColor: document.documentElement.classList.contains('dark')
-      ? '#2a2a3b'
-      : '#111827',
-    titleColor: '#ffffff',
-    bodyColor: '#e5e7eb',
-    borderColor: '#6366f1',
-    borderWidth: 1,
-    padding: 10,
-    cornerRadius: 6,
-    displayColors: false,
-    caretPadding: 8,
+  backgroundColor: document.documentElement.classList.contains('dark')
+    ? '#2a2a3b'
+    : '#111827',
+  titleColor: '#ffffff',
+  bodyColor: '#e5e7eb',
+  borderColor: '#6366f1',
+  borderWidth: 1,
+  padding: 10,
+  cornerRadius: 6,
+  displayColors: false,
+  caretPadding: 8,
 
-    callbacks: {
-      label: (ctx) => {
-        const value = ctx.raw;
-        return `${ctx.label}: ${value} occurrence${value !== 1 ? 's' : ''}`;
-      }
+  callbacks: {
+    title: () => null,   // 👈 KLJUČNO: gasi title
+    label: (ctx) => {
+      const value = ctx.raw;
+      return `${value} occurrences`;
     }
-  },
+  }
+},
   legend: { display: false },
   datalabels: {
     color: '#ffffff',
@@ -514,27 +515,28 @@ severityChart = new Chart(severityChartEl, {
     maintainAspectRatio: false,
     plugins: {
   tooltip: {
-    backgroundColor: document.documentElement.classList.contains('dark')
-      ? '#2a2a3b'
-      : '#111827',
-    titleColor: '#ffffff',
-    bodyColor: '#e5e7eb',
-    borderColor: '#6366f1',
-    borderWidth: 1,
-    padding: 10,
-    cornerRadius: 6,
-    displayColors: false,
-    caretPadding: 8,
+  backgroundColor: document.documentElement.classList.contains('dark')
+    ? '#2a2a3b'
+    : '#111827',
+  titleColor: '#ffffff',
+  bodyColor: '#e5e7eb',
+  borderColor: '#6366f1',
+  borderWidth: 1,
+  padding: 10,
+  cornerRadius: 6,
+  displayColors: false,
+  caretPadding: 8,
 
-    callbacks: {
-      label: (ctx) => {
-        const value = ctx.raw;
-        const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
-        const pct = Math.round((value / total) * 100);
-        return `${ctx.label}: ${value} (${pct}%)`;
-      }
+  callbacks: {
+    title: () => null,
+    label: (ctx) => {
+      const value = ctx.raw;
+      const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+      const pct = Math.round((value / total) * 100);
+      return `${value} issues · ${pct}%`;
     }
-  },
+  }
+},
   legend: { position: 'bottom' },
   datalabels: {
     color: '#ffffff',
@@ -583,25 +585,25 @@ severityChart = new Chart(severityChartEl, {
       maintainAspectRatio: false,
       plugins: {
   tooltip: {
-    backgroundColor: document.documentElement.classList.contains('dark')
-      ? '#2a2a3b'
-      : '#111827',
-    titleColor: '#ffffff',
-    bodyColor: '#e5e7eb',
-    borderColor: '#6366f1',
-    borderWidth: 1,
-    padding: 10,
-    cornerRadius: 6,
-    displayColors: false,
-    caretPadding: 8,
-    intersect: false,
-    mode: 'index',
+  backgroundColor: document.documentElement.classList.contains('dark')
+    ? '#2a2a3b'
+    : '#111827',
+  titleColor: '#ffffff',
+  bodyColor: '#e5e7eb',
+  borderColor: '#6366f1',
+  borderWidth: 1,
+  padding: 10,
+  cornerRadius: 6,
+  displayColors: false,
+  caretPadding: 8,
+  intersect: false,
+  mode: 'index',
 
-    callbacks: {
-      title: (items) => `Date: ${items[0].label}`,
-      label: (ctx) => `Estimated risk: $${ctx.raw.toLocaleString()}`
-    }
-  },
+  callbacks: {
+    title: (items) => `Date: ${items[0].label}`,
+    label: (ctx) => `Estimated risk: $${ctx.raw.toLocaleString()}`
+  }
+},
   legend: { display: false },
   datalabels: {
     align: 'top',
