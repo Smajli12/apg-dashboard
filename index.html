@@ -175,6 +175,7 @@
 const params = new URLSearchParams(window.location.search);
 const token = params.get('token');
 let activeDate = params.get('date') || '';
+const cameFromReality = params.get('from') === 'reality';
 
 if (!token) {
   document.body.innerHTML = `
@@ -244,6 +245,11 @@ function updateIssueClearVisibility() {
   }
 }
 function updateViewModeLabel(selectedDate) {
+  if (cameFromReality) {
+    viewModeLabel.textContent = '🎭 Reality follow-up';
+    return;
+  }
+
   if (selectedDate) {
     viewModeLabel.textContent = 'Daily view';
   } else {
