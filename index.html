@@ -412,12 +412,24 @@ issueChart = new Chart(issueChartEl, {
     labels: Object.keys(issueTypes),
     datasets: [{
       data: Object.values(issueTypes),
-      backgroundColor: APG_BRAND.primary
-    }]
+  backgroundColor: APG_BRAND.primary,
+  hoverBackgroundColor: APG_BRAND.primarySoft
+}]
   },
   options: {
-    maintainAspectRatio: false,
-    onClick: (evt, elements) => {
+  maintainAspectRatio: false,
+
+  hover: {
+    mode: 'index',
+    intersect: false
+  },
+
+  animation: {
+    duration: 300,
+    easing: 'easeOutCubic'
+  },
+
+  onClick: (evt, elements) => {
     if (!elements.length) return;
 
     const index = elements[0].index;
@@ -437,54 +449,43 @@ issueChart = new Chart(issueChartEl, {
 
     renderDashboard(allRows, activeDate);
   },
-    plugins: {
-  tooltip: {
-  backgroundColor: document.documentElement.classList.contains('dark')
-    ? '#2a2a3b'
-    : '#111827',
-  titleColor: '#ffffff',
-  bodyColor: '#e5e7eb',
-  borderColor: '#6366f1',
-  borderWidth: 1,
-  padding: 10,
-  cornerRadius: 6,
-  displayColors: false,
-  caretPadding: 8,
 
-  callbacks: {
-    title: () => null,   // 👈 KLJUČNO: gasi title
-    label: (ctx) => {
-      const value = ctx.raw;
-      return `${value} occurrences`;
-    }
-  }
-},
-  legend: { display: false },
-  datalabels: {
-    color: '#ffffff',
-    anchor: 'center',
-    align: 'center',
-    font: {
-      weight: 'bold',
-      size: 12
-    }
-  }
-},
-    scales: {
-      x: {
-        ticks: { color: '#9ca3af' }
-      },
-      y: {
-        beginAtZero: true,
-        ticks: {
-          color: '#9ca3af',
-          font: { size: 11 }
-        },
-        grid: {
-          color: 'rgba(156,163,175,0.2)'
-        }
+  plugins: {
+    tooltip: {
+      backgroundColor: document.documentElement.classList.contains('dark')
+        ? '#2a2a3b'
+        : '#111827',
+      titleColor: '#ffffff',
+      bodyColor: '#e5e7eb',
+      borderColor: '#6366f1',
+      borderWidth: 1,
+      padding: 10,
+      cornerRadius: 6,
+      displayColors: false,
+      caretPadding: 8,
+      callbacks: {
+        title: () => null,
+        label: (ctx) => `${ctx.raw} occurrences`
       }
+    },
+    legend: { display: false },
+    datalabels: {
+      color: '#ffffff',
+      anchor: 'center',
+      align: 'center',
+      font: { weight: 'bold', size: 12 }
     }
+  },
+
+  scales: {
+    x: { ticks: { color: '#9ca3af' } },
+    y: {
+      beginAtZero: true,
+      ticks: { color: '#9ca3af', font: { size: 11 } },
+      grid: { color: 'rgba(156,163,175,0.2)' }
+    }
+  }
+}
   }
 });
 const severityColorMap = {
@@ -582,42 +583,50 @@ severityChart = new Chart(severityChartEl, {
       }]
     },
     options: {
-      maintainAspectRatio: false,
-      plugins: {
-  tooltip: {
-  backgroundColor: document.documentElement.classList.contains('dark')
-    ? '#2a2a3b'
-    : '#111827',
-  titleColor: '#ffffff',
-  bodyColor: '#e5e7eb',
-  borderColor: '#6366f1',
-  borderWidth: 1,
-  padding: 10,
-  cornerRadius: 6,
-  displayColors: false,
-  caretPadding: 8,
-  intersect: false,
-  mode: 'index',
+  maintainAspectRatio: false,
 
-  callbacks: {
-    title: (items) => `Date: ${items[0].label}`,
-    label: (ctx) => `Estimated risk: $${ctx.raw.toLocaleString()}`
-  }
-},
-  legend: { display: false },
-  datalabels: {
-    align: 'top',
-    anchor: 'end',
-    offset: 6,
-    font: { size: 11, weight: '400' },
-    color: () =>
-      document.documentElement.classList.contains('dark')
-        ? '#9ca3af'
-        : '#6b7280',
-    formatter: v => `$${v.toLocaleString()}`
+  animation: {
+    duration: 400,
+    easing: 'easeOutQuart'
+  },
+
+  interaction: {
+    mode: 'index',
+    intersect: false
+  },
+
+  plugins: {
+    tooltip: {
+      backgroundColor: document.documentElement.classList.contains('dark')
+        ? '#2a2a3b'
+        : '#111827',
+      titleColor: '#ffffff',
+      bodyColor: '#e5e7eb',
+      borderColor: '#6366f1',
+      borderWidth: 1,
+      padding: 10,
+      cornerRadius: 6,
+      displayColors: false,
+      caretPadding: 8,
+      callbacks: {
+        title: (items) => `Date: ${items[0].label}`,
+        label: (ctx) => `Estimated risk: $${ctx.raw.toLocaleString()}`
+      }
+    },
+    legend: { display: false },
+    datalabels: {
+      align: 'top',
+      anchor: 'end',
+      offset: 6,
+      font: { size: 11, weight: '400' },
+      color: () =>
+        document.documentElement.classList.contains('dark')
+          ? '#9ca3af'
+          : '#6b7280',
+      formatter: v => `$${v.toLocaleString()}`
+    }
   }
 }
-    }
   });
 }
   const lastIssueTs = getLastIssueTimestamp(rows);
