@@ -256,6 +256,7 @@ function updateViewModeLabel(selectedDate) {
     viewModeLabel.textContent = 'Summary view';
   }
 }
+  updateViewModeLabel(activeDate);
 function getLastIssueTimestamp(rows) {
   if (!rows || !rows.length) return null;
 
