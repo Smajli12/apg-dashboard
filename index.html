@@ -765,7 +765,7 @@ if (fromParam) {
 
 window.history.replaceState({}, '', url);
 
-  updateViewModeLabel('');
+  updateViewModeLabel(cameFromReality ? null : '');
   renderDashboard(allRows, '');
 });
 
