@@ -167,10 +167,6 @@
     </div>
   </div>
 
-  <p class="text-xs text-gray-400 mt-6 text-right">
-  Live monitoring · Data refreshed <span id="lastUpdated">—</span>
-</p>
-</div>
   <script>
   // 🔐 DASHBOARD ACCESS TOKEN (FROM EMAIL)
 const params = new URLSearchParams(window.location.search);
@@ -252,7 +248,15 @@ function updateViewModeLabel(selectedDate) {
     viewModeLabel.textContent = 'Summary view';
   }
 }
+function getLastIssueTimestamp(rows) {
+  if (!rows || !rows.length) return null;
 
+  const timestamps = rows
+    .map(r => new Date(r.receivedAt).getTime())
+    .filter(ts => !isNaN(ts));
+
+  return timestamps.length ? Math.max(...timestamps) : null;
+}
 
 function renderDashboard(rows, selectedDate = null, selectedClient = '') {
   const issueTypes = {};
@@ -262,6 +266,7 @@ function renderDashboard(rows, selectedDate = null, selectedClient = '') {
   const slotSet = new Set();
   const offenderMap = {};
   const isSingleDayView = !!selectedDate;
+  
 
 
   rows.forEach(r => {
@@ -545,24 +550,30 @@ severityChart = new Chart(severityChartEl, {
     }
   });
 }
-  if (lastFetchTs) {
-  const minutesAgo = Math.floor((Date.now() - lastFetchTs) / 60000);
+  const lastIssueTs = getLastIssueTimestamp(rows);
 
-  let statusText = '';
+let statusText = '';
+
+if (!lastIssueTs) {
+  statusText = 'Monitoring active · No issues detected yet';
+} else {
+  const minutesAgo = Math.floor((Date.now() - lastIssueTs) / 60000);
 
   if (minutesAgo < 10) {
-    statusText = 'Live monitoring · Issues detected recently';
+    statusText = 'Monitoring active · Issues detected recently';
   } else if (minutesAgo < 60) {
     statusText = `Monitoring active · Last issue ${minutesAgo}m ago`;
+  } else if (minutesAgo < 1440) {
+    const hours = Math.floor(minutesAgo / 60);
+    statusText = `Monitoring active · Last issue ${hours}h ago`;
   } else {
-    statusText = 'Monitoring active · No new issues detected';
+    const days = Math.floor(minutesAgo / 1440);
+    statusText = `Monitoring active · Last issue ${days}d ago`;
   }
-
-  document.getElementById('lastUpdated').textContent = statusText;
-} else {
-  document.getElementById('lastUpdated').textContent =
-    'Monitoring active · No data yet';
 }
+
+document.getElementById('lastUpdated').textContent = statusText;
+
   document.getElementById('loadingIndicator').style.display = 'none';
 }
 
