@@ -174,16 +174,7 @@
   // 🔐 DASHBOARD ACCESS TOKEN (FROM EMAIL)
 const params = new URLSearchParams(window.location.search);
 const token = params.get('token');
-const presetDate = params.get('date');
-const isFirstLoad = !sessionStorage.getItem('apg_loaded');
-sessionStorage.setItem('apg_loaded', '1');
-if (presetDate && isFirstLoad) {
-  const url = new URL(window.location);
-  url.searchParams.delete('date');
-  window.history.replaceState({}, '', url);
-}
-const effectivePresetDate = isFirstLoad ? presetDate : null;
-let activeDate = effectivePresetDate || '';
+let activeDate = params.get('date') || '';
 
 if (!token) {
   document.body.innerHTML = `
@@ -202,7 +193,6 @@ const lossTrendChartEl = document.getElementById('lossTrendChart');
 const SHEET_URL = 'https://script.google.com/macros/s/AKfycbx-PFUcYyEXUR7Thw8kqzAWpCX74XY-4c-Si9myS69jloI9Vir_5YaZLXGCUiUquxMn/exec';
 const CACHE_KEY = 'apg_cache';
 const CACHE_TTL = 5 * 60 * 1000;
-let hasRenderedInitialView = false;
 
 const labelMap = {
   gpt_not_loaded: 'GPT not loaded',
@@ -244,6 +234,7 @@ const viewModeLabel = document.getElementById('viewModeLabel');
 const issueFilter = document.getElementById('issueFilter');
 const issueFilterNote = document.getElementById('issueFilterNote');
 const clearIssueFilterBtn = document.getElementById('clearIssueFilter');
+const lossChartWrapper = document.getElementById('lossChartWrapper');
 
 let selectedIssueFilter = '';
 function updateIssueClearVisibility() {
@@ -273,13 +264,11 @@ function getLastIssueTimestamp(rows) {
 function renderDashboard(rows, selectedDate = null, selectedClient = '') {
   const issueTypes = {};
   const severities = {};
-  const dailyTotals = {};        // deduped per day
-  const dedupeMap = new Map();  // slotId__pageUrl__date → loss
+  const dailyTotals = {};        
+  const dedupeMap = new Map();  
   const slotSet = new Set();
   const offenderMap = {};
-  const isSingleDayView = !!selectedDate;
-  
-
+  const isSingleDayView = !!selectedDate;  
 
   rows.forEach(r => {
   if (!r || !r.issueType || !r.receivedAt) return;
@@ -474,9 +463,17 @@ issueChart = new Chart(issueChartEl, {
       caretPadding: 8,
       callbacks: {
         title: () => null,
-        label: (ctx) => `${ctx.raw} issues`
-      }
-    },
+        label: (ctx) => {
+    const value = ctx.raw;
+    const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+    const pct = total ? Math.round((value / total) * 100) : 0;
+
+    return [
+      `${value} issues`,
+      `~${pct}% of all issues`
+    ];
+  }
+},
     legend: { display: false },
     datalabels: {
       color: '#ffffff',
@@ -517,7 +514,7 @@ severityChart = new Chart(severityChartEl, {
       data: severityData,
       backgroundColor: severityColors,
       borderColor: 'rgba(203, 213, 225, 0.25)', 
-      borderWidth: 1.4   // 👈 malo jače, ali classy
+      borderWidth: 1.4
     }]
   },
   options: {
@@ -542,7 +539,10 @@ severityChart = new Chart(severityChartEl, {
       const value = ctx.raw;
       const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
       const pct = Math.round((value / total) * 100);
-      return `${value} issues · ${pct}%`;
+      return [
+  `${value} issues`,
+  `~${pct}% of all issues`
+];
     }
   }
 },
@@ -570,7 +570,6 @@ severityChart = new Chart(severityChartEl, {
   }
   lossChartWrapper.style.display = 'none';
 } else {
-  // prikazi chart (summary mode)
   lossChartWrapper.style.display = 'block';
 
   if (lossTrendChart) lossTrendChart.destroy();
@@ -696,19 +695,15 @@ darkModeBtn.addEventListener('click', () => {
 });
 
 // CACHE
+let renderedFromCache = false;
 const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
 if (cached && Date.now() - cached.ts < CACHE_TTL) {
   allRows = cached.data;
+  renderedFromCache = true;
 
-  if (effectivePresetDate) {
-    dateInput.value = effectivePresetDate;
-    updateViewModeLabel(effectivePresetDate);
-    renderDashboard(allRows, effectivePresetDate);
-    hasRenderedInitialView = true;
-  } else {
-    updateViewModeLabel(null);
-    renderDashboard(allRows, activeDate);
-  }
+  if (activeDate) dateInput.value = activeDate;
+  updateViewModeLabel(activeDate);
+  renderDashboard(allRows, activeDate);
 }
 fetch(`${SHEET_URL}?token=${token}`)
   .then(r => r.json())
@@ -720,31 +715,29 @@ fetch(`${SHEET_URL}?token=${token}`)
     CACHE_KEY,
     JSON.stringify({ ts: Date.now(), data: allRows })
   );
-  if (effectivePresetDate && hasRenderedInitialView) {
-    return;
-  }
-
-  if (activeDate) {
-    dateInput.value = activeDate;
+  if (renderedFromCache) return;
+  if (activeDate) dateInput.value = activeDate;
     updateViewModeLabel(activeDate);
     renderDashboard(allRows, activeDate);
-  } else {
-    updateViewModeLabel(null);
-    renderDashboard(allRows, null);
-  }
-})
+  })
   .catch((error) => {
     console.error('Error fetching data:', error);
     // Ako dođe do greške, loading indikator se skriva
     document.getElementById('loadingIndicator').style.display = 'none';
   })
   .finally(() => {
-    // Sigurno sakrivanje loading indikatora nakon završenog procesa (uspešno ili sa greškom)
     document.getElementById('loadingIndicator').style.display = 'none';
   });
 
 dateInput.addEventListener('change', () => {
   activeDate = dateInput.value;
+  const url = new URL(window.location);
+  if (activeDate) {
+    url.searchParams.set('date', activeDate);
+  } else {
+    url.searchParams.delete('date');
+  }
+  window.history.replaceState({}, '', url);
   updateViewModeLabel(activeDate);
   renderDashboard(allRows, activeDate);
 });
@@ -752,8 +745,12 @@ dateInput.addEventListener('change', () => {
 clearDate.addEventListener('click', () => {
   activeDate = '';
   dateInput.value = '';
-  updateViewModeLabel(null);
-  renderDashboard(allRows, null);
+  const url = new URL(window.location);
+  url.searchParams.delete('date');
+  window.history.replaceState({}, '', url);
+
+  updateViewModeLabel('');
+  renderDashboard(allRows, '');
 });
 
   issueFilter.addEventListener('change', () => {
