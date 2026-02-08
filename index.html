@@ -559,23 +559,38 @@ severityChart = new Chart(severityChartEl, {
 }
   const lastIssueTs = getLastIssueTimestamp(rows);
 
+let minutesAgo = null;
+if (lastIssueTs) {
+  minutesAgo = Math.floor((Date.now() - lastIssueTs) / 60000);
+}
+
 let statusText = '';
 
 if (!lastIssueTs) {
   statusText = 'Monitoring active · No issues detected yet';
+} else if (minutesAgo < 10) {
+  statusText = 'Monitoring active · Issues detected recently';
+} else if (minutesAgo < 60) {
+  statusText = `Monitoring active · Last issue ${minutesAgo}m ago`;
+} else if (minutesAgo < 1440) {
+  const hours = Math.floor(minutesAgo / 60);
+  statusText = `Monitoring active · Last issue ${hours}h ago`;
 } else {
-  const minutesAgo = Math.floor((Date.now() - lastIssueTs) / 60000);
+  const days = Math.floor(minutesAgo / 1440);
+  statusText = `Monitoring active · Last issue ${days}d ago`;
+}
 
-  if (minutesAgo < 10) {
-    statusText = 'Monitoring active · Issues detected recently';
-  } else if (minutesAgo < 60) {
-    statusText = `Monitoring active · Last issue ${minutesAgo}m ago`;
-  } else if (minutesAgo < 1440) {
-    const hours = Math.floor(minutesAgo / 60);
-    statusText = `Monitoring active · Last issue ${hours}h ago`;
+const statusEl = document.getElementById('lastUpdated');
+if (statusEl) {
+  statusEl.textContent = statusText;
+
+  // boja (INFO indigo, stale gray)
+  statusEl.className = ''; // reset
+
+  if (!lastIssueTs || minutesAgo < 1440) {
+    statusEl.classList.add('text-indigo-600', 'dark:text-indigo-300');
   } else {
-    const days = Math.floor(minutesAgo / 1440);
-    statusText = `Monitoring active · Last issue ${days}d ago`;
+    statusEl.classList.add('text-gray-400', 'dark:text-gray-500');
   }
 }
 
